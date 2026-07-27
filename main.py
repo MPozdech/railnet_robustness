@@ -232,10 +232,9 @@ plotting.plot_node_measure(G_tracks, G_services, pos_tracks, pos_stations, pager
 
 plotting.plot_measure(G_services, pos_stations, 'edge', sf.map_node_values_to_edges(G_services_demand,closeness_service), "Service graph closeness centrality (weight = travel_time)", filename='closeness_services_single')
 plotting.plot_node_measure(G_tracks, G_tracks, pos_tracks, pos_tracks, eigen_infra_none, eigen_infra_weight, "Track Eigenvector Centrality Comparison", nodesize_scale=200, filename='eigen_infra_comparison',left_subtitle = "a) Eigenvector Centrality (no weight)", right_subtitle = "b) Eigenvector Centrality (weight = flow)",)
-plotting.plot_measure(G_services, pos_stations, 'node', pagerank_service_weight, "Service PageRank centrality (weight = flow)", filename='pagerank_services_single')
-plotting.plot_measure(G_tracks, pos_tracks, 'edge', betweenness_infra, "Track betweenness centrality (weight = travel_time)", filename='betweenness_infra_single')
+plotting.plot_measure(G_services, pos_stations, 'node', pagerank_service_weight, "Service PageRank centrality (weight = flow)", filename='pagerank_services_single', nodesize_scale=200,)
+plotting.plot_measure(G_tracks, pos_tracks, 'edge', betweenness_infra, "Track betweenness centrality (weight = travel_time)", filename='betweenness_infra_single', nodesize_scale=200,)
 plotting.plot_node_measure(G_tracks, G_services, pos_tracks, pos_stations, eigen_infra_weight, eigen_service_weight, "Unnormalized eigenvector centrality (weight = flow) ", nodesize_scale=200, filename='eigenvector_unnormalzied_with_flow_weight',left_subtitle = "a) track graph", right_subtitle = "b) service graph",)
-
 
 # Collect measures
 measures_edges_infra = {
@@ -286,6 +285,9 @@ measures_blocks_services = {
     'pagerank_service'      : sf.map_node_values_to_blocks(G_tracks_demand,pagerank_service_none),
 }
 
+plotting.plot_measure_boxplots([betweenness_infra,betweenness_service,betweenness_infra_nodes,betweenness_service_nodes,measures_blocks_infra['betweenness_services'],measures_blocks_services['betweenness_services']],['Edge tracks', 'Edge services', 'Node tracks','Node services','Block tracks','Block services'],scaling='none', title='Comparison of betweeness centrality',filename='betweenness_comparison',)
+plotting.plot_measure_boxplots([betweenness_infra,eigen_infra_none,eigen_infra_weight,closeness_infra,pagerank_infra_none],['Betweenness','Eigenvector (unweighted)','Eigenvector (flow weight)','Closeness','PageRank (unweighted)'],scaling='z-score',title='Comparison of different measures for the track graph',filename='track_measure_comparioson')
+
 ##### Metric v Measure correlation #####
 ### Edge correlations ###
 # Tracks
@@ -334,6 +336,7 @@ plotting.plot_correlations(correlations_blocks_services_no_alt, metric_groups=pe
 plotting.plot_correlations(correlations_edges_services_ipv_alt, metric_groups=pax_metrics, title='Service correlations with IPV replacement, passenger metrics - edge disruptions',filename='edges_services_ipv_capacity_metrics',figsize=(7,3))
 plotting.plot_correlations(correlations_blocks_services_ov_alt, metric_groups=tt_metrics, title='Service correlations with line bus replacement, travel time metrics - block disruptions',filename='blocks_services_ov_tt_metrics',figsize=(10,6))
 
+plotting.plot_correlations(correlations_nodes_tracks_no_alt, metric_groups=perf_metrics, title='Node correlations without replacement, performance metrics - node disruptions', filename='nodes_tracks_noreplacement_double_metrics',figsize=(10,6))
 
 ##### Interventions #####
 # Nedersaksenlijn

@@ -619,7 +619,8 @@ def plot_flow_diff(
     no_diff_width: float = 0.5,
     cutoff: int = 100,
     edge_attribute:str='flow',
-    filename: str = 'generic_flow_difference'
+    filename: str = 'generic_flow_difference',
+    show_report:bool = False,
 ):
     """
     Plots edge-level flow differences between two graphs.
@@ -673,8 +674,9 @@ def plot_flow_diff(
         new_flow  = G_new[u][v].get("flow", 0) if G_new.has_edge(u, v) else 0
         flow_diff_report[(u, v)] = round(new_flow - base_flow, 2)
 
-    for k, v in sorted(flow_diff_report.items(), key=lambda x: x[1], reverse=True):
-        print(f"{k}: {v}")
+    if show_report:
+        for k, v in sorted(flow_diff_report.items(), key=lambda x: x[1], reverse=True):
+            print(f"{k}: {v}")
 
     # Normalise widths relative to the largest difference
     max_diff = max(increased_widths + decreased_widths, default=1)
@@ -1385,6 +1387,100 @@ def plot_metric_boxplots(
     fig.savefig(sf.get_dir(f"figures/disruptions/{filename}.jpg"), bbox_inches="tight", dpi=plot_dpi)
     _show(fig)
 
+def plot_measure_boxplots(
+    measures: list[dict],
+    series_labels: list[str],
+    title: str = 'Measure value distributions',
+    scaling: str = 'none',   # 'zscore' | 'none'
+    figsize: tuple = (7, 4),
+    filename: str = 'generic_measure_boxplot',
+):
+    """
+    Boxplots of the value distribution of one or more graph measures.
+
+    Args:
+        measures:      list of {key: value} measure dicts, one box each
+        series_labels: x-axis label for each measure, same length/order as `measures`
+        scaling:       'zscore' or 'none' for raw values
+    """
+    if len(measures) != len(series_labels):
+        raise ValueError(
+            f"measures ({len(measures)}) and series_labels ({len(series_labels)}) must be the same length."
+        )
+
+    cmap = plt.get_cmap('tab10')
+    colors = [cmap(i % 10) for i in range(len(measures))]
+
+    # Collect values and raw mean per series
+    plotted   = []
+    raw_means = []
+    for measure in measures:
+        vals = pd.Series(list(measure.values()), dtype=float).replace([np.inf, -np.inf], np.nan).dropna()
+        raw_means.append(vals.mean() if not vals.empty else np.nan)
+
+        if scaling == 'zscore':
+            std = vals.std()
+            # Drop empty series so it's annotated but not boxed.
+            scaled = (vals - vals.mean()) / std if std and not np.isnan(std) else pd.Series([], dtype=float)
+            plotted.append(scaled)
+        else:
+            plotted.append(vals)
+
+    ylabel = 'Z-score (standardized)' if scaling == 'zscore' else 'Value'
+
+    fig, ax = plt.subplots(figsize=figsize, dpi=plot_dpi)
+
+    for i, series in enumerate(plotted):
+        data = series.values
+
+        # Annotate raw mean
+        if data.size == 0:
+            raw_mean = raw_means[i]
+            if raw_mean is not None and not pd.isna(raw_mean):
+                ax.text(i, 0, f' {raw_mean:.3g}', rotation=90, ha='center', va='bottom',
+                        fontsize=6, color=colors[i], clip_on=False)
+            continue
+
+        ax.boxplot(
+            data,
+            positions=[i],
+            widths=0.6,
+            patch_artist=True,
+            boxprops=dict(facecolor=colors[i], color=colors[i], alpha=0.6),
+            medianprops=dict(color='black', linewidth=1.5),
+            whiskerprops=dict(color=colors[i]),
+            capprops=dict(color=colors[i]),
+            flierprops=dict(marker='o', markerfacecolor=colors[i], markersize=3, alpha=0.5),
+            manage_ticks=False,
+        )
+
+        raw_mean = raw_means[i]
+        if raw_mean is not None and not pd.isna(raw_mean):
+            ax.text(i + 0.015, np.nanmax(data), f' {raw_mean:.3g}',
+                    rotation=90, ha='center', va='bottom',
+                    fontsize=6, color=colors[i], clip_on=False)
+
+    ax.set_xticks(range(len(series_labels)))
+    ax.set_xticklabels(series_labels, rotation=45, ha='right', fontsize=9)
+    ax.set_xlim(-0.5, len(series_labels) - 0.5)
+    ax.set_ylabel(ylabel)
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
+    ax.margins(y=0.18)
+    if scaling == 'zscore':
+        ax.axhline(0, color='gray', linestyle=':', linewidth=0.8)
+
+    legend_handles = [
+        Line2D([0], [0], color='black', linewidth=1.5, label='Median'),
+        Line2D([0], [0], color='gray', marker=r'$\bar{x}$', linestyle='None',
+               markersize=9, label='Mean (raw value)'),
+    ]
+    ax.legend(handles=legend_handles, loc='best', fontsize=8)
+
+    fig.suptitle(title)
+    plt.tight_layout()
+    fig.savefig(sf.get_dir(f"figures/measures/{filename}.jpg"), bbox_inches="tight", dpi=plot_dpi)
+    _show(fig)
+
 def plot_highlighted_graph(
     G: nx.Graph,
     pos: dict,
@@ -1400,13 +1496,13 @@ def plot_highlighted_graph(
     one node with a specific 'Type' attribute value.
 
     Args:
-        G:                nx.Graph
-        pos:              dict of node positions
-        highlight_type:   value of the 'type' attribute to highlight
-        title_str:        string to use as title
-        label_type:       "all" = all labels, "ic" = ic stations only, None = none
-        node_size:        base node size
-        edge_width:       base edge width
+        G:              nx.Graph
+        pos:            dict of node positions
+        highlight_type: value of the 'type' attribute to highlight
+        title_str:      string to use as title
+        label_type:     "all" = all labels, "ic" = ic stations only, None = none
+        node_size:      base node size
+        edge_width:     base edge width
     """
     # Partition nodes
     highlight_nodes = [n for n, d in G.nodes(data=True) if d.get("Type") == highlight_type]

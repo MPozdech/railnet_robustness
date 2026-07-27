@@ -140,10 +140,14 @@ def map_node_values_to_blocks(G:nx.Graph, node_values: dict) -> dict:
     return block_values
 
 # base directory
-def get_dir(filepath:str) -> str:
-    dir = os.path.dirname(os.path.abspath(__file__)) # module/dp directory
-    dir = os.path.dirname(dir) # get main.py direct
-    return os.path.join(dir, filepath)
+def get_dir(filepath: str) -> str:
+    """
+    Returns the directory filepath, creates it if it doesn't exist.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  
+    full_path = os.path.join(root, filepath)
+    os.makedirs(os.path.dirname(full_path), exist_ok=True) 
+    return full_path
 
 def compute_disrupted_passengers(edges_with_disruptions: pd.DataFrame,track_nodes: pd.DataFrame,) -> pd.Series:
     """
