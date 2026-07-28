@@ -1413,11 +1413,8 @@ def plot_measure_boxplots(
 
     # Collect values and raw mean per series
     plotted   = []
-    raw_means = []
     for measure in measures:
         vals = pd.Series(list(measure.values()), dtype=float).replace([np.inf, -np.inf], np.nan).dropna()
-        raw_means.append(vals.mean() if not vals.empty else np.nan)
-
         if scaling == 'zscore':
             std = vals.std()
             # Drop empty series so it's annotated but not boxed.
@@ -1433,14 +1430,6 @@ def plot_measure_boxplots(
     for i, series in enumerate(plotted):
         data = series.values
 
-        # Annotate raw mean
-        if data.size == 0:
-            raw_mean = raw_means[i]
-            if raw_mean is not None and not pd.isna(raw_mean):
-                ax.text(i, 0, f' {raw_mean:.3g}', rotation=90, ha='center', va='bottom',
-                        fontsize=6, color=colors[i], clip_on=False)
-            continue
-
         ax.boxplot(
             data,
             positions=[i],
@@ -1452,13 +1441,9 @@ def plot_measure_boxplots(
             capprops=dict(color=colors[i]),
             flierprops=dict(marker='o', markerfacecolor=colors[i], markersize=3, alpha=0.5),
             manage_ticks=False,
+            meanprops=dict(marker='D', markerfacecolor='white', markeredgecolor='black', markersize=4),
+            showmeans=True,
         )
-
-        raw_mean = raw_means[i]
-        if raw_mean is not None and not pd.isna(raw_mean):
-            ax.text(i + 0.015, np.nanmax(data), f' {raw_mean:.3g}',
-                    rotation=90, ha='center', va='bottom',
-                    fontsize=6, color=colors[i], clip_on=False)
 
     ax.set_xticks(range(len(series_labels)))
     ax.set_xticklabels(series_labels, rotation=45, ha='right', fontsize=9)
@@ -1471,8 +1456,7 @@ def plot_measure_boxplots(
 
     legend_handles = [
         Line2D([0], [0], color='black', linewidth=1.5, label='Median'),
-        Line2D([0], [0], color='gray', marker=r'$\bar{x}$', linestyle='None',
-               markersize=9, label='Mean (raw value)'),
+        Line2D([0], [0], marker='D', markerfacecolor='white', markeredgecolor='black', markersize=4, label='Mean'),
     ]
     ax.legend(handles=legend_handles, loc='best', fontsize=8)
 

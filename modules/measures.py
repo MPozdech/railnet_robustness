@@ -68,7 +68,7 @@ def eigenvector(infra: nx.Graph, services: nx.Graph, initial_importance_attr: st
 
     return eigen_infra, eigen_services, title
 
-def pagerank(infra: nx.Graph, services: nx.Graph, initial_importance_attr: str = None, weight_attr: str = None):
+def pagerank(infra: nx.Graph, services: nx.Graph, initial_importance_attr: str = None, weight_attr: str = None,normalize_weights: bool = True):
     title = f"PageRank Centrality (importance = {initial_importance_attr}, weight = {weight_attr})"
     print(f"running pagerank with initial importance = {initial_importance_attr} & weight = {weight_attr}")
 
@@ -84,24 +84,26 @@ def pagerank(infra: nx.Graph, services: nx.Graph, initial_importance_attr: str =
 
     if weight_attr is not None:
         weight = nx.get_edge_attributes(infra, weight_attr)
-        weight = {node: (val if not math.isnan(val) else 0.0) for node, val in weight.items()}
-        min_val = min(weight.values())
-        max_val = max(weight.values())
-        weight = {node: (val - min_val) / (max_val - min_val) for node, val in weight.items()}
-
         weight_service = nx.get_edge_attributes(services, weight_attr)
-        weight_service = {node: (val if not math.isnan(val) else 0.0) for node, val in weight_service.items()}
-        min_val = min(weight_service.values())
-        max_val = max(weight_service.values())
-        weight_service = {node: (val - min_val) / (max_val - min_val) for node, val in weight_service.items()}
 
-        nx.set_edge_attributes(infra, weight, "normalized_weight")
-        nx.set_edge_attributes(services, weight_service, "normalized_weight")
+        if normalize_weights:
+            weight = {node: (val if not math.isnan(val) else 0.0) for node, val in weight.items()}
+            min_val = min(weight.values())
+            max_val = max(weight.values())
+            weight = {node: (val - min_val) / (max_val - min_val) for node, val in weight.items()}
+
+            weight_service = {node: (val if not math.isnan(val) else 0.0) for node, val in weight_service.items()}
+            min_val = min(weight_service.values())
+            max_val = max(weight_service.values())
+            weight_service = {node: (val - min_val) / (max_val - min_val) for node, val in weight_service.items()}
+
+        nx.set_edge_attributes(infra, weight, "weight")
+        nx.set_edge_attributes(services, weight_service, "weight")
     else:
         weight = None
         weight_service = None
 
-    pagerank_infra      = nx.pagerank(infra,    max_iter=10000, nstart=nstart,         weight='normalized_weight')
-    pagerank_services   = nx.pagerank(services, max_iter=10000, nstart=nstart_service, weight='normalized_weight')
+    pagerank_infra      = nx.pagerank(infra,    max_iter=10000, nstart=nstart,         weight='weight')
+    pagerank_services   = nx.pagerank(services, max_iter=10000, nstart=nstart_service, weight='weight')
 
     return pagerank_infra, pagerank_services, title

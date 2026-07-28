@@ -213,6 +213,7 @@ betweenness_infra_nodes, betweenness_service_nodes, title8 = measures.betweennes
 eigen_infra, eigen_service, title2               = measures.eigenvector(G_tracks_demand,G_services_demand,"TravelersPerDay", None)
 eigen_infra_none, eigen_service_none, title3     = measures.eigenvector(G_tracks_demand,G_services_demand,None, None)
 eigen_infra_weight, eigen_service_weight, title4 = measures.eigenvector(G_tracks_demand,G_services_demand,"TravelersPerDay","flow")
+eigen_infra_weight_unnormalized, eigen_service_weight_unnormalized, title9 = measures.eigenvector(G_tracks_demand,G_services_demand,"TravelersPerDay","Flow",normalize_weights=False)
 
 # Closeness #
 closeness_infra, closeness_service, title5 = measures.closeness(G_tracks_demand, G_services_demand, "travel_time")
@@ -220,6 +221,7 @@ closeness_infra, closeness_service, title5 = measures.closeness(G_tracks_demand,
 # Pagerank #
 pagerank_infra_none, pagerank_service_none, title6      = measures.pagerank(G_tracks_demand, G_services_demand, initial_importance_attr=None, weight_attr=None)
 pagerank_infra_weight, pagerank_service_weight, title7  = measures.pagerank(G_tracks_demand, G_services_demand, initial_importance_attr='TravelersPerDay', weight_attr='flow')
+pagerank_infra_weight_unnormalized, pagerank_service_weight_unnormalized, title10 = measures.pagerank(G_tracks_demand,G_services_demand, initial_importance_attr='TravelersPerDay', weight_attr='flow',normalize_weights=False)
 
 # Plotting #
 plotting.plot_edge_measure(G_tracks, G_services, pos_tracks, pos_stations, betweenness_infra, betweenness_service, title1, filename='edge_betweenness')
@@ -232,9 +234,10 @@ plotting.plot_node_measure(G_tracks, G_services, pos_tracks, pos_stations, pager
 
 plotting.plot_measure(G_services, pos_stations, 'edge', sf.map_node_values_to_edges(G_services_demand,closeness_service), "Service graph closeness centrality (weight = travel_time)", filename='closeness_services_single')
 plotting.plot_node_measure(G_tracks, G_tracks, pos_tracks, pos_tracks, eigen_infra_none, eigen_infra_weight, "Track Eigenvector Centrality Comparison", nodesize_scale=200, filename='eigen_infra_comparison',left_subtitle = "a) Eigenvector Centrality (no weight)", right_subtitle = "b) Eigenvector Centrality (weight = flow)",)
-plotting.plot_measure(G_services, pos_stations, 'node', pagerank_service_weight, "Service PageRank centrality (weight = flow)", filename='pagerank_services_single', nodesize_scale=200,)
-plotting.plot_measure(G_tracks, pos_tracks, 'edge', betweenness_infra, "Track betweenness centrality (weight = travel_time)", filename='betweenness_infra_single', nodesize_scale=200,)
+plotting.plot_measure(G_services, pos_stations, 'node', pagerank_service_weight, "Service PageRank centrality (weight = flow)", filename='pagerank_services_single', nodesize_scale=10000,)
+plotting.plot_measure(G_tracks, pos_tracks, 'edge', betweenness_infra, "Track betweenness centrality (weight = travel_time)", filename='betweenness_infra_single')
 plotting.plot_node_measure(G_tracks, G_services, pos_tracks, pos_stations, eigen_infra_weight, eigen_service_weight, "Unnormalized eigenvector centrality (weight = flow) ", nodesize_scale=200, filename='eigenvector_unnormalzied_with_flow_weight',left_subtitle = "a) track graph", right_subtitle = "b) service graph",)
+plotting.plot_node_measure(G_tracks,G_tracks,pos_tracks,pos_tracks,eigen_infra_weight,eigen_infra_weight_unnormalized, "Unnormalized weighted Eigenvector centrality against normalized",nodesize_scale=200,filename='eigenvector_normalization_comparison',left_subtitle="a) unnormalized",right_subtitle="b) normalized")
 
 # Collect measures
 measures_edges_infra = {
@@ -285,8 +288,12 @@ measures_blocks_services = {
     'pagerank_service'      : sf.map_node_values_to_blocks(G_tracks_demand,pagerank_service_none),
 }
 
-plotting.plot_measure_boxplots([betweenness_infra,betweenness_service,betweenness_infra_nodes,betweenness_service_nodes,measures_blocks_infra['betweenness_services'],measures_blocks_services['betweenness_services']],['Edge tracks', 'Edge services', 'Node tracks','Node services','Block tracks','Block services'],scaling='none', title='Comparison of betweeness centrality',filename='betweenness_comparison',)
-plotting.plot_measure_boxplots([betweenness_infra,eigen_infra_none,eigen_infra_weight,closeness_infra,pagerank_infra_none],['Betweenness','Eigenvector (unweighted)','Eigenvector (flow weight)','Closeness','PageRank (unweighted)'],scaling='z-score',title='Comparison of different measures for the track graph',filename='track_measure_comparioson')
+plotting.plot_measure_boxplots([betweenness_infra,betweenness_service,betweenness_infra_nodes,betweenness_service_nodes,measures_blocks_infra['betweenness_infra'],measures_blocks_services['betweenness_services']],['Edge tracks', 'Edge services', 'Node tracks','Node services','Block tracks','Block services'],scaling='none', title='Comparison of betweeness centrality',filename='betweenness_comparison',figsize=(5,5))
+
+plotting.plot_measure_boxplots([betweenness_infra,eigen_infra_none,eigen_infra_weight,eigen_infra_weight_unnormalized,closeness_infra,pagerank_infra_none,pagerank_infra_weight,pagerank_infra_weight_unnormalized],['Betweenness','Eigenvector (unweighted)','Eigenvector (weighted)','Eigenvector (unnormalized)','Closeness','PageRank (unweighted)','PageRank (weighted)','PageRank (unnormalized)'],scaling='zscore',title='Comparison of different measures for the track graph (Z-score)',filename='track_measure_comparison',figsize=(5,5))
+plotting.plot_measure_boxplots([betweenness_infra,eigen_infra_none,eigen_infra_weight,closeness_infra,pagerank_infra_none,pagerank_infra_weight],['Betweenness','Eigenvector (unweighted)','Eigenvector (weighted)','Closeness','PageRank (unweighted)','PageRank (weighted)'],scaling='none',title='Comparison of different measures for the track graph (Raw)',filename='track_measure_comparison',figsize=(5,5))
+plotting.plot_measure_boxplots([closeness_infra,pagerank_infra_none,pagerank_infra_weight],['Closeness','PageRank (unweighted)','PageRank (weighted)'],scaling='none',title='Comparison of Closeness and PageRank measure values',filename='measure_detailed_comparison',figsize=(5,4))
+
 
 ##### Metric v Measure correlation #####
 ### Edge correlations ###
