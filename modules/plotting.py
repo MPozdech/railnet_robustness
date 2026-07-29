@@ -1271,9 +1271,7 @@ def plot_metric_boxplots(
         row_chunks = [all_cols]
         row_titles = [None]
     else:
-        # One subplot row per metric group. A requested name matches itself and any suffixed
-        # variant (name + '_...'), so 'disrupted_pax_flow' also collects the node/block outputs'
-        # 'disrupted_pax_flow_sum' without needing separate group definitions per disruption type.
+        # One subplot row per metric group. Disrupted_pax_flow collects _avg and _sum as well. 
         row_chunks = []
         row_titles = []
         assigned = set()
@@ -1313,7 +1311,7 @@ def plot_metric_boxplots(
                 # Center each group around the metric tick, offset per group
                 x_pos = m_idx + (g_idx - (n_groups - 1) / 2) * box_width
 
-                # Constant column under z-scoring (std=0) or all-NaN: no distribution.
+                # Constant column under z-scoring or all-NaN: no distribution.
                 if data.size == 0:
                     
                     # Plot raw mean anyway
@@ -1388,77 +1386,93 @@ def plot_metric_boxplots(
     _show(fig)
 
 def plot_measure_boxplots(
-    measures: list[dict],
-    series_labels: list[str],
+    measures,
+    series_labels,
     title: str = 'Measure value distributions',
-    scaling: str = 'none',   # 'zscore' | 'none'
-    figsize: tuple = (7, 4),
+    scaling: str = 'none',
+    figsize: tuple = (6, 5),
     filename: str = 'generic_measure_boxplot',
 ):
     """
     Boxplots of the value distribution of one or more graph measures.
 
+    Two call styles:
+      - A single figure, passed as a list of measure dicts, or
+      - a double figure, passed a dict with lists within it. Dict name used to for subtitles.
+
     Args:
-        measures:      list of {key: value} measure dicts, one box each
-        series_labels: x-axis label for each measure, same length/order as `measures`
-        scaling:       'zscore' or 'none' for raw values
+        measures:      list of {key: value} measure dicts, or {group: [dicts]} for subfigures.
+        series_labels: x-axis labels matching `measures` (list, or {group: [labels]}).
+        scaling:       'zscore' or 'none'.
     """
-    if len(measures) != len(series_labels):
-        raise ValueError(
-            f"measures ({len(measures)}) and series_labels ({len(series_labels)}) must be the same length."
-        )
+    # Normalize both call styles to a list of (group_title, measures, labels) panels
+    grouped = isinstance(measures, dict)
+    if grouped:
+        if not isinstance(series_labels, dict) or set(series_labels) != set(measures):
+            raise ValueError("When `measures` is a grouped dict, `series_labels` must be a dict with the same keys.")
+        group_names   = list(measures.keys())
+        measure_lists = [measures[g] for g in group_names]
+        label_lists   = [series_labels[g] for g in group_names]
+    else:
+        group_names   = [None]
+        measure_lists = [measures]
+        label_lists   = [series_labels]
+
+    for m_list, l_list in zip(measure_lists, label_lists):
+        if len(m_list) != len(l_list):
+            raise ValueError(f"measures ({len(m_list)}) and series_labels ({len(l_list)}) must be the same length.")
 
     cmap = plt.get_cmap('tab10')
-    colors = [cmap(i % 10) for i in range(len(measures))]
-
-    # Collect values and raw mean per series
-    plotted   = []
-    for measure in measures:
-        vals = pd.Series(list(measure.values()), dtype=float).replace([np.inf, -np.inf], np.nan).dropna()
-        if scaling == 'zscore':
-            std = vals.std()
-            # Drop empty series so it's annotated but not boxed.
-            scaled = (vals - vals.mean()) / std if std and not np.isnan(std) else pd.Series([], dtype=float)
-            plotted.append(scaled)
-        else:
-            plotted.append(vals)
-
     ylabel = 'Z-score (standardized)' if scaling == 'zscore' else 'Value'
 
-    fig, ax = plt.subplots(figsize=figsize, dpi=plot_dpi)
+    def _draw_panel(ax, measure_list, labels):
+        colors = [cmap(i % 10) for i in range(len(measure_list))]
+        for i, measure in enumerate(measure_list):
+            vals = pd.Series(list(measure.values()), dtype=float).replace([np.inf, -np.inf], np.nan).dropna()
+            if scaling == 'zscore':
+                std = vals.std()
+                # Skip constant series
+                vals = (vals - vals.mean()) / std if std and not np.isnan(std) else pd.Series([], dtype=float)
+            data = vals.values
+            if data.size == 0:
+                continue
+            ax.boxplot(
+                data,
+                positions=[i],
+                widths=0.6,
+                patch_artist=True,
+                boxprops=dict(facecolor=colors[i], color=colors[i], alpha=0.6),
+                medianprops=dict(color='black', linewidth=1.5),
+                whiskerprops=dict(color=colors[i]),
+                capprops=dict(color=colors[i]),
+                flierprops=dict(marker='o', markerfacecolor=colors[i], markersize=3, alpha=0.5),
+                manage_ticks=False,
+                meanprops=dict(marker='D', markerfacecolor='white', markeredgecolor='black', markersize=4),
+                showmeans=True,
+            )
+        ax.set_xticks(range(len(labels)))
+        ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=9)
+        ax.set_xlim(-0.5, len(labels) - 0.5)
+        ax.grid(axis='y', linestyle='--', alpha=0.5)
+        ax.margins(y=0.18)
+        if scaling == 'zscore':
+            ax.axhline(0, color='gray', linestyle=':', linewidth=0.8)
 
-    for i, series in enumerate(plotted):
-        data = series.values
+    n_groups = len(group_names)
+    fig, axes = plt.subplots(1, n_groups, figsize=figsize, dpi=plot_dpi, squeeze=False)
+    axes = axes[0]
 
-        ax.boxplot(
-            data,
-            positions=[i],
-            widths=0.6,
-            patch_artist=True,
-            boxprops=dict(facecolor=colors[i], color=colors[i], alpha=0.6),
-            medianprops=dict(color='black', linewidth=1.5),
-            whiskerprops=dict(color=colors[i]),
-            capprops=dict(color=colors[i]),
-            flierprops=dict(marker='o', markerfacecolor=colors[i], markersize=3, alpha=0.5),
-            manage_ticks=False,
-            meanprops=dict(marker='D', markerfacecolor='white', markeredgecolor='black', markersize=4),
-            showmeans=True,
-        )
-
-    ax.set_xticks(range(len(series_labels)))
-    ax.set_xticklabels(series_labels, rotation=45, ha='right', fontsize=9)
-    ax.set_xlim(-0.5, len(series_labels) - 0.5)
-    ax.set_ylabel(ylabel)
-    ax.grid(axis='y', linestyle='--', alpha=0.5)
-    ax.margins(y=0.18)
-    if scaling == 'zscore':
-        ax.axhline(0, color='gray', linestyle=':', linewidth=0.8)
+    for ax, gname, m_list, l_list in zip(axes, group_names, measure_lists, label_lists):
+        _draw_panel(ax, m_list, l_list)
+        if gname is not None:
+            ax.set_title(gname)
 
     legend_handles = [
         Line2D([0], [0], color='black', linewidth=1.5, label='Median'),
-        Line2D([0], [0], marker='D', markerfacecolor='white', markeredgecolor='black', markersize=4, label='Mean'),
+        Line2D([0], [0], marker='D', markerfacecolor='white', markeredgecolor='black', markersize=4, linestyle='None', label='Mean'),
     ]
-    ax.legend(handles=legend_handles, loc='best', fontsize=8)
+    axes[0].legend(handles=legend_handles, loc='upper left', fontsize=8)
+    axes[0].set_ylabel(ylabel)
 
     fig.suptitle(title)
     plt.tight_layout()
