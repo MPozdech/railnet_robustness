@@ -23,8 +23,8 @@ If demand not available, uses fitted catchment -> ridership function ("Travelers
 
 # Passed parameters
 optimize = True
-decay = 1.8888
-scale_factor = 1.343732
+decay = None
+scale_factor = None
 
 def assign_flows(
     G: nx.Graph,
@@ -473,6 +473,7 @@ def flow_assignment(infra:nx.Graph, services:nx.Graph, decay:float=None, scale_f
 
     if optimize:
         decay, scale_factor = calibrate_decay(infra, loss_type='log', morning_demand=False, calib_target='edges')
+        verbose = True
 
     print(f'Assigning flows to graph, 1/3')
     infra_mixed_single    = assign_flows(infra.copy(),       decay=decay, scale_factor=scale_factor, apply_override=True,  morning_demand=False) # This one prefers NS flows, if not available uses modeled flows. Only for 24hr demand!
@@ -481,10 +482,12 @@ def flow_assignment(infra:nx.Graph, services:nx.Graph, decay:float=None, scale_f
     print(f'Assigning flows to graph, 3/3')
     services_model_single = assign_flows(services.copy(),    decay=decay, scale_factor=scale_factor, apply_override=False, morning_demand=morning_demand)
     if verbose:
+        infra_model_test = assign_flows(infra.copy(),        decay=decay, scale_factor=scale_factor, apply_override=False, morning_demand=False)
+        service_model_test = assign_flows(services.copy(),   decay=decay, scale_factor=scale_factor, apply_override=False, morning_demand=False)
         print("Node destination sum / BoardingDeboarding from infra model")
-        diagnose_flows(infra_model_single, test_flows=False, morning_demand=morning_demand)
+        diagnose_flows(infra_model_test, test_flows=False, morning_demand=False)
         print("Flow calculation / to_travelers from infra model")
-        diagnose_flows(infra_model_single, test_flows=True, morning_demand=morning_demand)
-        print("Node comparison for service model")
-        diagnose_flows(services_model_single, test_flows=False, morning_demand=morning_demand)
+        diagnose_flows(infra_model_test, test_flows=True, morning_demand=False)
+        print("Node destination sum / BoardingDeboarding from infra model")
+        diagnose_flows(service_model_test, test_flows=False, morning_demand=False)
     return infra_mixed_single, infra_model_single, services_model_single
