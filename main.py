@@ -18,11 +18,11 @@ plotting.plot_dpi = 300
 
 #### Demand assignment parameters ####
 # Do I want to calculate the gravity function parameters from scratch?
-demand.optimize       = False
+demand.optimize       = True
 # What is the (initial) decay parameter for the gravity function? 
-demand.decay          = 1.8888
+demand.decay          = 1.8545
 # What is the (initial) scale factor for the gravity function?
-demand.scale_factor   = 1.343732
+demand.scale_factor   = 1.311774
 # Do I want infra_model & services_model to have flows for morning peak or for the 24hr period? 
 MORNING_DEMAND = True 
 
@@ -157,7 +157,7 @@ plotting.plot_disrupted_pax_minutes(G_services_demand, pos_stations, filename='d
 
 # Overwrite so all later calculations used the morning modeled demand instead of the mixed 24hr flows
 if MORNING_DEMAND: G_tracks_demand = demand_infra_model    # model graph contains peak values if morning_demand is passed
-else:              G_tracks_demand = demand_infra_mixed    # mixed always contains the 24hr flows from ns where possible
+else:              G_tracks_demand = demand_infra_mixed    # mixed always contains the !24hr flows! from ns where possible
 
 # Inspectable graph as dataframe
 nodes_demand, edges_demand = sf.graph_to_dataframes(G_tracks_demand)
@@ -370,37 +370,37 @@ interventions.old_track_betweenness   = betweenness_infra
 
 # Nedersaksenlijn
 (nodes_new_neder, edges_new_neder, betweenness_new_neder,
-    targeted_no_alt_neder, targeted_ipv_alt_neder, targeted_ov_alt_neder,
+    int_neder_metrics,
     diff_no_alt_neder, diff_ipv_alt_neder, diff_ov_alt_neder) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn'],scenario_name='nedersaksenlijn',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Lelylijn (no extension)
 (nodes_new_lely, edges_new_lely, betweenness_new_lely,
-    targeted_no_alt_lely, targeted_ipv_alt_lely, targeted_ov_alt_lely,
+    int_lely_metrics,
     diff_no_alt_lely, diff_ipv_alt_lely, diff_ov_alt_lely) = interventions.run_intervention_scenario(
     trajects=['lelylijn'],scenario_name='lelylijn',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Lelylijn (with extension)
 (nodes_new_lely_extension, edges_new_lely_extension, betweenness_new_lely_extension,
-    targeted_no_alt_lely_extension, targeted_ipv_alt_lely_extension, targeted_ov_alt_lely_extension,
+    int_lely_extended_metrics,
     diff_no_alt_lely_extension, diff_ipv_alt_lely_extension, diff_ov_alt_lely_extension) = interventions.run_intervention_scenario(
     trajects=['lelylijn_extension','lelylijn'],scenario_name='lelylijn_w_extension',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Nedersaksenlijn + Lelylijn (unextended)
 (nodes_new_neder_lely, edges_new_neder_lely, betweenness_new_neder_lely,
-    targeted_no_alt_neder_lely, targeted_ipv_alt_neder_lely, targeted_ov_alt_neder_lely,
-    diff_no_alt_neder_lely, diff_ipv_alt_neder_lely, diff_ov_alt_neder_lely) = interventions.run_intervention_scenario(
+    int_neder_lely_metrics,
+    diff_no_alt_neder_lely, diff_ipv_alt_neder_lely, diff_ov_alt_neder_lely, combined_neder_lely) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn','lelylijn'],scenario_name='nedersaksenlijn_w_lelylijn',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Nedersaksenlijn + Lelylijn (extended)
 (nodes_new_neder_lely_extension, edges_new_neder_lely_extension, betweenness_new_neder_lely_extension,
-    targeted_no_alt_neder_lely_extension, targeted_ipv_alt_neder_lely_extension, targeted_ov_alt_neder_lely_extension,
+    int_neder_lely_extended_metrics,
     diff_no_alt_neder_lely_extension, diff_ipv_alt_neder_lely_extension, diff_ov_alt_neder_lely_extension) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn','lelylijn','lelylijn_extension'],scenario_name='nedersaksenlijn_w_lelylijn_extension',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Nedersaksenlijn + Lelylijn (extended) + Afsluitdijk
 (nodes_new_neder_lely_extension_afsluitdijk, edges_new_neder_lely_extension_afsluitdijk, betweenness_new_neder_lely_extension_afsluitdijk,
-    targeted_no_alt_neder_lely_extension_afsluitdijk, targeted_ipv_alt_neder_lely_extension_afsluitdijk, targeted_ov_alt_neder_lely_extension_afsluitdijk,
+    int_neder_lely_extended_afsluitdijk_metrics,
     diff_no_alt_neder_lely_extension_afsluitdijk, diff_ipv_alt_neder_lely_extension_afsluitdijk, diff_ov_alt_neder_lely_extension_afsluitdijk) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn','lelylijn', 'lelylijn_extension','afsluitdijk'],scenario_name='nedersaksenlijn_w_lelylijn_extension_afsluitdijk',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 

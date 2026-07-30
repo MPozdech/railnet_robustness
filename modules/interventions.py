@@ -1,6 +1,7 @@
 import modules.data_preparation     as dp          # type: ignore
 import modules.demand               as demand      # type: ignore
 import modules.disruptions          as disruptions # type: ignore
+import modules.metrics              as metrics     # type: ignore
 import modules.plotting             as plotting    # type: ignore
 import modules.supporting_functions as sf          # type: ignore
 import pandas as pd
@@ -170,6 +171,39 @@ def compare_targeted_edge_disruptions(default_metrics:pd.DataFrame, intervention
 
     return result
 
+def combine_scenario_metrics(
+    default: dict,
+    no_alternative: dict,
+    ipv_alt: dict,
+    ov_alt: dict,
+    column_labels: tuple = ('default', 'no alternative', 'ipv', 'ov'),
+) -> pd.DataFrame:
+    """
+    Combine a targeted disruption's replacement-scenario metric dicts into one
+    dataframe: metrics as rows, one column per scenario.
+
+    All four inputs are {metric: value} dicts. `default` is the undisrupted
+    baseline for the improved graph; the other three are the no-alternative /
+    ipv / ov outputs of targeted_edge_disruption. Rows are the union of every
+    metric key in first-seen order, so a field present in only one scenario
+    (e.g. the OV-only recalculated-flow fields) becomes NaN in the other columns
+    rather than being dropped.
+    """
+    scenarios = [default, no_alternative, ipv_alt, ov_alt]
+
+    # Preserve a sensible metric order: default's keys first, then any extras.
+    ordered_keys = []
+    for scenario in scenarios:
+        for key in scenario:
+            if key not in ordered_keys:
+                ordered_keys.append(key)
+
+    combined = pd.DataFrame(
+        {label: pd.Series(scenario) for label, scenario in zip(column_labels, scenarios)}
+    ).reindex(ordered_keys)
+
+    return combined
+
 def run_intervention_scenario(
     trajects: list[str],
     target1: str,
@@ -232,10 +266,16 @@ def run_intervention_scenario(
     difference_ipv_alt        = compare_targeted_edge_disruptions(baseline_ipv_alt, targeted_ipv_alt, target1=target1, target2=target2)
     difference_ov_alt         = compare_targeted_edge_disruptions(baseline_ov_alt, targeted_ov_alt, target1=target1, target2=target2)
 
+    # Undisrupted baseline for the improved network
+    default_metrics = metrics.edge_metrics(G_new_demand, source=target1, target=target2)
+
+    # Combine into one df
+    combined_metrics = combine_scenario_metrics(
+        default_metrics, targeted_no_alternative, targeted_ipv_alt, targeted_ov_alt)
+
     print(f"Finished intervention analysis of {scenario_name}")
 
     return (
-        nodes_new, edges_new, new_track_betweenness,
-        targeted_no_alternative, targeted_ipv_alt, targeted_ov_alt,
+        nodes_new, edges_new, new_track_betweenness, combined_metrics,
         difference_no_alternative, difference_ipv_alt, difference_ov_alt,
     )
