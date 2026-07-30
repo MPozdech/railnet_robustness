@@ -21,11 +21,16 @@ BoardingDeboarding + reizeigers from OV-Oost data to try and avoid transfering d
 If demand not available, uses fitted catchment -> ridership function ("TravelersPerDay")
 """
 
+# Passed parameters
+optimize = True
+decay = 1.8888
+scale_factor = 1.343732
+
 def assign_flows(
     G: nx.Graph,
-    decay: float,
+    decay: float = None,
     max_travel_time: float = None,
-    scale_factor: float = 1.0,
+    scale_factor: float = None,
     apply_override: bool = True,
     morning_demand: bool = False
 ) -> nx.Graph:
@@ -55,6 +60,11 @@ def assign_flows(
                           Set False during calibration so the optimiser sees raw model output on every edge.
         morning_demand  : If true uses 'MorningDemand' to assign the morning peak demand instead of 24hr demand
     """
+    # Fall back to the module-level decay / scale_factor
+    if decay is None:
+        decay = globals()['decay']
+    if scale_factor is None:
+        scale_factor = globals()['scale_factor']
 
     nx.set_edge_attributes(G, 0.0, "flow")
 
@@ -434,7 +444,7 @@ def diagnose_flows(G: nx.Graph, label: str = "", test_flows: bool = False, morni
     print(f"  % within 25%:     {100*np.mean(np.abs(residuals)/observed < 0.25):.1f}%")
     print(f"  % within 50%:     {100*np.mean(np.abs(residuals)/observed < 0.50):.1f}%")
 
-def flow_assignment(infra:nx.Graph, services:nx.Graph, optimize:bool = False, verbose:bool = False, morning_demand:bool = False,decay:float=1.8888,scale_factor:float=1.343732) -> nx.Graph:
+def flow_assignment(infra:nx.Graph, services:nx.Graph, decay:float=None, scale_factor:float=None, verbose:bool = False, morning_demand:bool = False) -> nx.Graph:
     """
     Wrapper function for flow assignemnt
 
@@ -455,9 +465,15 @@ def flow_assignment(infra:nx.Graph, services:nx.Graph, optimize:bool = False, ve
     """
 
 
+    # Take main parameters unless passed otherwise
+    if decay is None:
+        decay = globals()['decay']
+    if scale_factor is None:
+        scale_factor = globals()['scale_factor']
+
     if optimize:
         decay, scale_factor = calibrate_decay(infra, loss_type='log', morning_demand=False, calib_target='edges')
-    
+
     print(f'Assigning flows to graph, 1/3')
     infra_mixed_single    = assign_flows(infra.copy(),       decay=decay, scale_factor=scale_factor, apply_override=True,  morning_demand=False) # This one prefers NS flows, if not available uses modeled flows. Only for 24hr demand!
     print(f'Assigning flows to graph, 2/3')

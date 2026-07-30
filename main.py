@@ -14,17 +14,17 @@ import time
 # Do I want the plots to pop up in the viewer? (figures are always created and saved either way)
 plotting.show_plots = False
 # What dpi do I want for the figures?
-plotting.plot_dpi = 200
+plotting.plot_dpi = 300
 
 #### Demand assignment parameters ####
 # Do I want to calculate the gravity function parameters from scratch?
-ASSIGN_DEMAND   = False
-# Do I want infra_model & services_model to have flows for morning peak or for the 24hr period? 
-MORNING_DEMAND  = True
+demand.optimize       = False
 # What is the (initial) decay parameter for the gravity function? 
-DECAY           = 1.8888
+demand.decay          = 1.8888
 # What is the (initial) scale factor for the gravity function?
-SCALE_FACTOR    = 1.343732
+demand.scale_factor   = 1.343732
+# Do I want infra_model & services_model to have flows for morning peak or for the 24hr period? 
+MORNING_DEMAND = True 
 
 #### Disruption experiments ####
 # Do I want to run the disruption experiments?
@@ -37,7 +37,6 @@ RUN_NODE_EXP    = False
 EXPORT = False
 # How many matching nodes between two block segments do I want to create a block?
 NUM_MATCHING_NODES_REQUIRED = 1
-
 
 #### Bus alternatives ####
 # How many passengers can fit into an ipv bus?
@@ -142,15 +141,18 @@ plotting.plot_rdt_edge_metric(
     title='Avg. Duration of a Disruption [minutes] - 2023~2025', colorbar_label='Avg. duration [min]',
     filename='avg_disruption_duration', label_type=None,print_nodes=False)
 plotting.plot_rdt_edge_metric(
-    G_services, pos_stations, edge_attribute='historically_disrupted_passengers', 
-    title='Disrupted passenger-minutes (TravelersPerDay) - 2023~2025', colorbar_label='Disrupted TravelersPerDay [pax-min]', 
+    G_services, pos_stations, edge_attribute='codisrupted_passengers', 
+    title='Codisrupted passenger-minutes - 2023~2025', colorbar_label='TravelersPerDay [pax-min]', 
     filename='disrupted_passengers_24hr', label_type=None, print_nodes=False)
+plotting.plot_rdt_edge_metric(
+    G_services, pos_stations, edge_attribute='total_stations_codisrupted',
+    title='The number of co-disrupted stations per-edge', colorbar_label='Codisrupted stations',filename='codisrupted_stations_count')
 
 
 ##### Demand assignment #####
-demand_infra_mixed, demand_infra_model, G_services_demand = demand.flow_assignment(G_tracks,G_services,optimize=ASSIGN_DEMAND,verbose=False, morning_demand=MORNING_DEMAND, decay=DECAY, scale_factor=SCALE_FACTOR)
+demand_infra_mixed, demand_infra_model, G_services_demand = demand.flow_assignment(G_tracks,G_services,verbose=False,morning_demand=MORNING_DEMAND)
 print(f"Finished demand assignment at: {time.strftime('%H:%M:%S')}")
-plotting.demand_flow_comparison(demand_infra_mixed, demand_infra_model, G_services_demand, pos_tracks, pos_stations, None)
+plotting.demand_flow_comparison(demand_infra_mixed,demand_infra_model,G_services_demand,pos_tracks,pos_stations,None)
 plotting.plot_disrupted_pax_minutes(G_services_demand, pos_stations, filename='disrupted_pax_minutes', title='Disrupted passenger-minutes (flow) - 2023~2025') # 24hr demand!
 
 # Overwrite so all later calculations used the morning modeled demand instead of the mixed 24hr flows
@@ -224,7 +226,6 @@ closeness_infra, closeness_service, title5 = measures.closeness(G_tracks_demand,
 # Pagerank #
 pagerank_infra_none, pagerank_service_none, title6      = measures.pagerank(G_tracks_demand, G_services_demand, initial_importance_attr=None, weight_attr=None)
 pagerank_infra_weight, pagerank_service_weight, title7  = measures.pagerank(G_tracks_demand, G_services_demand, initial_importance_attr='TravelersPerDay', weight_attr='flow')
-pagerank_infra_weight_unnormalized, pagerank_service_weight_unnormalized, title10 = measures.pagerank(G_tracks_demand,G_services_demand, initial_importance_attr='TravelersPerDay', weight_attr='flow',normalize_weights=False)
 
 # Plotting #
 plotting.plot_edge_measure(G_tracks, G_services, pos_tracks, pos_stations, betweenness_infra, betweenness_service, title1, filename='edge_betweenness')
@@ -338,75 +339,70 @@ correlations_blocks_services_ipv_alt = disruptions.correlation_calc(metrics=metr
 correlations_blocks_services_ov_alt  = disruptions.correlation_calc(metrics=metrics_block_services_ov_alt, measures=measures_blocks_services, filename='correlation_blocks_services_ov_alt', run_correlation=RUN_BLOCK_EXP)
 
 # Plot correlations
-plotting.plot_correlations(correlations_edges_tracks_ipv_alt, title='Infra ipv correlations - edges',filename='edge_track_ipv_correlations')
+plotting.plot_correlations(correlations_edges_tracks_ipv_alt,   title='Infra ipv correlations - edges',filename='edge_track_ipv_correlations')
 plotting.plot_correlations(correlations_edges_services_ipv_alt, title='Service ipv correlations - edges',filename='edge_service_ipv_correlations')
-plotting.plot_correlations(correlations_edges_tracks_no_alt, title='Infra correlations without replacement - edges',filename='edge_tracks_no_alt_correlations')
-plotting.plot_correlations(correlations_nodes_services_no_alt, title='Service correlations without replacement - nodes',filename='nodes_services_no_alt_correlations')
-plotting.plot_correlations(correlations_nodes_tracks_no_alt, title='Infra correlations without replacement - nodes',filename='nodes_tracks_noreplacement')
+plotting.plot_correlations(correlations_edges_tracks_no_alt,    title='Infra correlations without replacement - edges',filename='edge_tracks_no_alt_correlations')
+plotting.plot_correlations(correlations_nodes_services_no_alt,  title='Service correlations without replacement - nodes',filename='nodes_services_no_alt_correlations')
+plotting.plot_correlations(correlations_nodes_tracks_no_alt,    title='Infra correlations without replacement - nodes',filename='nodes_tracks_noreplacement')
+plotting.plot_correlations(correlations_blocks_tracks_no_alt,title='Infra correlations without replacement - blocks',filename='blocks_tracks_noreplacement')
 
-plotting.plot_correlations(correlations_edges_tracks_no_alt, metric_groups=perf_metrics, title='Track correlations without replacement, performance metrics - edge disruptions',filename='edges_tracks_noreplacement_double_metrics')
-plotting.plot_correlations(correlations_edges_services_no_alt, metric_groups=perf_metrics, title='Service correlations without replacement, performance metrics - edge disruptions',filename='edges_services_noreplacement_double_metrics')
-plotting.plot_correlations(correlations_blocks_tracks_no_alt, metric_groups=perf_metrics, title='Track correlations without replacement, performance metrics - block disruptions',filename='blocks_tracks_noreplacement_double_metrics',figsize=(10,6))
+
+plotting.plot_correlations(correlations_edges_tracks_no_alt,    metric_groups=perf_metrics, title='Track correlations without replacement, performance metrics - edge disruptions',filename='edges_tracks_noreplacement_double_metrics')
+plotting.plot_correlations(correlations_edges_services_no_alt,  metric_groups=perf_metrics, title='Service correlations without replacement, performance metrics - edge disruptions',filename='edges_services_noreplacement_double_metrics')
+plotting.plot_correlations(correlations_blocks_tracks_no_alt,   metric_groups=perf_metrics, title='Track correlations without replacement, performance metrics - block disruptions',filename='blocks_tracks_noreplacement_double_metrics',figsize=(10,6))
 plotting.plot_correlations(correlations_blocks_services_no_alt, metric_groups=perf_metrics, title='Service correlations without replacement, performance metrics - block disruptions',filename='blocks_services_noreplacement_double_metrics',figsize=(10,6))
-plotting.plot_correlations(correlations_edges_services_ipv_alt, metric_groups=pax_metrics, title='Service correlations with IPV replacement, passenger metrics - edge disruptions',filename='edges_services_ipv_capacity_metrics',figsize=(7,3))
-plotting.plot_correlations(correlations_blocks_services_ov_alt, metric_groups=tt_metrics, title='Service correlations with line bus replacement, travel time metrics - block disruptions',filename='blocks_services_ov_tt_metrics',figsize=(10,6))
+plotting.plot_correlations(correlations_edges_services_ipv_alt, metric_groups=pax_metrics,  title='Service correlations with IPV replacement, passenger metrics - edge disruptions',filename='edges_services_ipv_capacity_metrics',figsize=(7,3))
+plotting.plot_correlations(correlations_blocks_services_ov_alt, metric_groups=tt_metrics,   title='Service correlations with line bus replacement, travel time metrics - block disruptions',filename='blocks_services_ov_tt_metrics',figsize=(10,6))
 
-plotting.plot_correlations(correlations_nodes_tracks_no_alt, metric_groups=perf_metrics, title='Node correlations without replacement, performance metrics - node disruptions', filename='nodes_tracks_noreplacement_double_metrics',figsize=(10,6))
+plotting.plot_correlations(correlations_nodes_tracks_no_alt,    metric_groups=perf_metrics, title='Node correlations without replacement, performance metrics - node disruptions', filename='nodes_tracks_noreplacement_double_metrics',figsize=(10,6))
 
 ##### Interventions #####
+# Pass pre-interevntion data
+interventions.G_tracks   = G_tracks_demand
+interventions.G_services = G_services_demand
+interventions.G_ipv      = G_ipv
+interventions.G_ov       = G_ov
+interventions.pos_tracks = pos_tracks
+interventions.baseline_no_alternative = metrics_edge_tracks_no_alternative
+interventions.baseline_ipv_alt        = metrics_edge_tracks_ipv_alt
+interventions.baseline_ov_alt         = metrics_edge_tracks_ov_alt
+interventions.old_track_betweenness   = betweenness_infra
+
 # Nedersaksenlijn
 (nodes_new_neder, edges_new_neder, betweenness_new_neder,
     targeted_no_alt_neder, targeted_ipv_alt_neder, targeted_ov_alt_neder,
     diff_no_alt_neder, diff_ipv_alt_neder, diff_ov_alt_neder) = interventions.run_intervention_scenario(
-    G_tracks_demand,G_services_demand,G_ipv,G_ov,pos_tracks,
-    metrics_edge_tracks_no_alternative, metrics_edge_tracks_ipv_alt, metrics_edge_tracks_ov_alt,
-    trajects=['nedersaksenlijn'],scenario_name='nedersaksenlijn',
-    target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND,decay=DECAY,scale_factor=SCALE_FACTOR,old_track_betweenness=betweenness_infra)
+    trajects=['nedersaksenlijn'],scenario_name='nedersaksenlijn',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Lelylijn (no extension)
 (nodes_new_lely, edges_new_lely, betweenness_new_lely,
     targeted_no_alt_lely, targeted_ipv_alt_lely, targeted_ov_alt_lely,
     diff_no_alt_lely, diff_ipv_alt_lely, diff_ov_alt_lely) = interventions.run_intervention_scenario(
-    G_tracks_demand,G_services_demand,G_ipv,G_ov,pos_tracks,
-    metrics_edge_tracks_no_alternative, metrics_edge_tracks_ipv_alt, metrics_edge_tracks_ov_alt,
-    trajects=['lelylijn'],scenario_name='lelylijn',
-    target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND,decay=DECAY,scale_factor=SCALE_FACTOR,old_track_betweenness=betweenness_infra)
+    trajects=['lelylijn'],scenario_name='lelylijn',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Lelylijn (with extension)
 (nodes_new_lely_extension, edges_new_lely_extension, betweenness_new_lely_extension,
     targeted_no_alt_lely_extension, targeted_ipv_alt_lely_extension, targeted_ov_alt_lely_extension,
     diff_no_alt_lely_extension, diff_ipv_alt_lely_extension, diff_ov_alt_lely_extension) = interventions.run_intervention_scenario(
-    G_tracks_demand,G_services_demand,G_ipv,G_ov,pos_tracks,
-    metrics_edge_tracks_no_alternative, metrics_edge_tracks_ipv_alt, metrics_edge_tracks_ov_alt,
-    trajects=['lelylijn_extension','lelylijn'],scenario_name='lelylijn_w_extension',
-    target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND,decay=DECAY,scale_factor=SCALE_FACTOR,old_track_betweenness=betweenness_infra)
+    trajects=['lelylijn_extension','lelylijn'],scenario_name='lelylijn_w_extension',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Nedersaksenlijn + Lelylijn (unextended)
 (nodes_new_neder_lely, edges_new_neder_lely, betweenness_new_neder_lely,
     targeted_no_alt_neder_lely, targeted_ipv_alt_neder_lely, targeted_ov_alt_neder_lely,
     diff_no_alt_neder_lely, diff_ipv_alt_neder_lely, diff_ov_alt_neder_lely) = interventions.run_intervention_scenario(
-    G_tracks_demand,G_services_demand,G_ipv,G_ov,pos_tracks,
-    metrics_edge_tracks_no_alternative, metrics_edge_tracks_ipv_alt, metrics_edge_tracks_ov_alt,
-    trajects=['nedersaksenlijn','lelylijn'],scenario_name='nedersaksenlijn_w_lelylijn',
-    target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND,decay=DECAY,scale_factor=SCALE_FACTOR,old_track_betweenness=betweenness_infra)
+    trajects=['nedersaksenlijn','lelylijn'],scenario_name='nedersaksenlijn_w_lelylijn',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Nedersaksenlijn + Lelylijn (extended)
 (nodes_new_neder_lely_extension, edges_new_neder_lely_extension, betweenness_new_neder_lely_extension,
     targeted_no_alt_neder_lely_extension, targeted_ipv_alt_neder_lely_extension, targeted_ov_alt_neder_lely_extension,
     diff_no_alt_neder_lely_extension, diff_ipv_alt_neder_lely_extension, diff_ov_alt_neder_lely_extension) = interventions.run_intervention_scenario(
-    G_tracks_demand,G_services_demand,G_ipv,G_ov,pos_tracks,
-    metrics_edge_tracks_no_alternative, metrics_edge_tracks_ipv_alt, metrics_edge_tracks_ov_alt,
-    trajects=['nedersaksenlijn','lelylijn','lelylijn_extension'],scenario_name='nedersaksenlijn_w_lelylijn_extension',
-    target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND,decay=DECAY,scale_factor=SCALE_FACTOR,old_track_betweenness=betweenness_infra)
+    trajects=['nedersaksenlijn','lelylijn','lelylijn_extension'],scenario_name='nedersaksenlijn_w_lelylijn_extension',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Nedersaksenlijn + Lelylijn (extended) + Afsluitdijk
 (nodes_new_neder_lely_extension_afsluitdijk, edges_new_neder_lely_extension_afsluitdijk, betweenness_new_neder_lely_extension_afsluitdijk,
     targeted_no_alt_neder_lely_extension_afsluitdijk, targeted_ipv_alt_neder_lely_extension_afsluitdijk, targeted_ov_alt_neder_lely_extension_afsluitdijk,
     diff_no_alt_neder_lely_extension_afsluitdijk, diff_ipv_alt_neder_lely_extension_afsluitdijk, diff_ov_alt_neder_lely_extension_afsluitdijk) = interventions.run_intervention_scenario(
-    G_tracks_demand,G_services_demand,G_ipv,G_ov,pos_tracks,
-    metrics_edge_tracks_no_alternative, metrics_edge_tracks_ipv_alt, metrics_edge_tracks_ov_alt,
-    trajects=['nedersaksenlijn','lelylijn', 'lelylijn_extension','afsluitdijk'],scenario_name='nedersaksenlijn_w_lelylijn_extension_afsluitdijk',
-    target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND,decay=DECAY,scale_factor=SCALE_FACTOR,old_track_betweenness=betweenness_infra)
+    trajects=['nedersaksenlijn','lelylijn', 'lelylijn_extension','afsluitdijk'],scenario_name='nedersaksenlijn_w_lelylijn_extension_afsluitdijk',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Get end time
 total_time = time.time() - start_time

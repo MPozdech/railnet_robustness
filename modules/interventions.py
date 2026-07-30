@@ -8,9 +8,23 @@ import networkx as nx
 import numpy as np
 
 """
-Takes new stations and returns graph based on import choice.
+Handles everything from creating the new stations, running the scenarios, calculating differences. 
+
+Only does it for the track graph and edge betweenness measure.  
 """
 
+#### Shared inputs
+G_tracks = None
+G_services = None
+G_ipv = None
+G_ov = None
+pos_tracks = {}
+baseline_no_alternative = None
+baseline_ipv_alt = None
+baseline_ov_alt = None
+old_track_betweenness = {}
+
+# Takes new stations and returns graph based on import choice.
 new_stations = dp.pg_import("catchments_new_stations") # The name of new stations, their catchments, and lat-longs
 new_stations['TravelersPerDay'] = round(0.264 * new_stations['pax_catchment'] ** 0.9607,0) # Should have this passed from the fitting in dp
 pos_new = dict(
@@ -157,23 +171,11 @@ def compare_targeted_edge_disruptions(default_metrics:pd.DataFrame, intervention
     return result
 
 def run_intervention_scenario(
-    G_tracks: nx.Graph,
-    G_services: nx.Graph,
-    G_ipv: nx.Graph,
-    G_ov: nx.Graph,
-    pos_tracks: dict,
-    baseline_no_alternative: pd.DataFrame,
-    baseline_ipv_alt: pd.DataFrame,
-    baseline_ov_alt: pd.DataFrame,
     trajects: list[str],
     target1: str,
     target2: str,
     morning_demand: bool = True,
-    decay: float = 1.8888,
-    scale_factor: float = 1.343732,
-    apply_override: bool = False,
     scenario_name: str = 'intervention',
-    old_track_betweenness: dict = None,
 ) -> tuple:
     """
     Runs one intervention scenario.
@@ -186,50 +188,51 @@ def run_intervention_scenario(
     Recalculates demand in the disrupted scenario
     Returns metrics for scenario. 
     """
-    # Add the new trajects to a copy of pos_tracks
+    # Implement intervention
     G_new, pos_new = add_new_stations(G_tracks, trajects=trajects)
-    pos_tracks = {**pos_tracks, **pos_new}
+    pos_all = {**pos_tracks, **pos_new}
 
     plotting.plot_highlighted_graph(
-        G_new, pos_tracks, highlight_type='new',
+        G_new, pos_all, highlight_type='new',
         title_str=f'New elements being added - {scenario_name}', label_type='highlight',
         filename=f'new_elements_{scenario_name}',
     )
 
     G_new_demand = demand.assign_flows(
-        G_new, decay=decay, scale_factor=scale_factor,
-        morning_demand=morning_demand, apply_override=apply_override,
+        G_new,morning_demand=morning_demand, apply_override=False,
     )
     nodes_new, edges_new = sf.graph_to_dataframes(G_new_demand)
 
     new_track_betweenness = nx.edge_betweenness_centrality(G_new_demand, normalized=True, weight='travel_time')
     plotting.plot_flow_diff(
-        G_tracks, G_new_demand, pos_tracks,
+        G_tracks, G_new_demand, pos_all,
         title_str=f'Flow difference - {scenario_name}',
         filename=f'flow_diff_{scenario_name}',
     )
 
     plotting.plot_edge_measure(
-        G_tracks, G_new_demand, pos_tracks, pos_tracks,
+        G_tracks, G_new_demand, pos_all, pos_all,
         old_track_betweenness, new_track_betweenness,
         title_str=f'Old vs new betweenness - {scenario_name}',
         filename=f'betweenness_old_vs_new_{scenario_name}',
         save_dir='interventions',
     )
     plotting.plot_centrality_diff(
-        G_new_demand, pos_tracks, old_track_betweenness, new_track_betweenness,
+        G_new_demand, pos_all, old_track_betweenness, new_track_betweenness,
         title_str=f'Betweenness comparison - {scenario_name}',
         filename=f'betweenness_diff_{scenario_name}'
     )
 
     # Re-run the targeted disruption on the improved graph, then compare each scenario against the default metrics for this disruption
     targeted_no_alternative, targeted_ipv_alt, targeted_ov_alt = disruptions.targeted_edge_disruption(
-        G_new_demand, G_services, G_ipv, G_ov, target1=target1, target2=target2, morning_demand=morning_demand, decay=decay, scale_factor=scale_factor
+        G_new_demand, G_services, G_ipv, G_ov, target1=target1, target2=target2, morning_demand=morning_demand
     )
 
     difference_no_alternative = compare_targeted_edge_disruptions(baseline_no_alternative, targeted_no_alternative, target1=target1, target2=target2)
     difference_ipv_alt        = compare_targeted_edge_disruptions(baseline_ipv_alt, targeted_ipv_alt, target1=target1, target2=target2)
     difference_ov_alt         = compare_targeted_edge_disruptions(baseline_ov_alt, targeted_ov_alt, target1=target1, target2=target2)
+
+    print(f"Finished intervention analysis of {scenario_name}")
 
     return (
         nodes_new, edges_new, new_track_betweenness,
