@@ -664,10 +664,11 @@ def node_pairs_joining(node_pairs: object, track_nodes: object, disrupted_servic
             "disruption_ids":    matched["rdt_id"].astype(int).tolist(),
             "durations":         matched["duration_minutes"].tolist(),
             "affected_stations": affected,
-            "co_disruption_count":  co_disruption_count,
+            "co_disruption_count": co_disruption_count,
             "total_stations_codisrupted": sum(co_disruption_count.values()),
         })
 
+    # Count the times a disruption occured with both edge neighboors 
     edges_with_disruptions = (
         result
         .groupby(["from_stop", "to_stop"], dropna=False)
@@ -707,7 +708,7 @@ def node_pairs_joining(node_pairs: object, track_nodes: object, disrupted_servic
         right_index=True,
     )
 
-    node_pairs['historically_disrupted_passengers'] = sf.compute_disrupted_passengers(node_pairs,track_nodes)
+    node_pairs['codisrupted_passengers'] = sf.compute_disrupted_passengers(node_pairs,track_nodes)
 
     node_pairs = node_pairs[~node_pairs.index.duplicated(keep='first')]
 

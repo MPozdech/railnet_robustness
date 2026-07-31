@@ -1029,7 +1029,7 @@ def disrupt_blocks(G_services:nx.Graph, G_tracks: nx.Graph, G_ipv: nx.Graph, G_o
     return block_metrics_tracks_no_alternative, block_metrics_tracks_ipv_alt, block_metrics_tracks_ov_alt, block_metrics_services_no_alternative, block_metrics_services_ipv_alt, block_metrics_services_ov_alt
 
 
-def targeted_edge_disruption(G_tracks:nx.Graph, G_services:nx.Graph, G_ipv:nx.Graph, G_ov:nx.Graph, target1:str, target2:str, morning_demand:bool=True,scale_factor:float = 1.343732, decay:float = 1.8888):
+def targeted_edge_disruption(G_tracks:nx.Graph, G_services:nx.Graph, G_ipv:nx.Graph, G_ov:nx.Graph, target1:str, target2:str, morning_demand:bool=True):
     """
     Disrupt a single edge and calculate metrics on it
     """
@@ -1135,7 +1135,8 @@ def targeted_edge_disruption(G_tracks:nx.Graph, G_services:nx.Graph, G_ipv:nx.Gr
     })
 
     # Recalculate how pax would flow after disruption with OV alternative TT across target edge, using the same demand model as in the main run
-    G_ov_alternative_demand = demand.assign_flows(G_ov_subgraph, scale_factor = scale_factor, decay = decay, apply_override=False, morning_demand=morning_demand)
+    # decay / scale_factor resolve from the module-level demand config (see demand.assign_flows)
+    G_ov_alternative_demand = demand.assign_flows(G_ov_subgraph, apply_override=False, morning_demand=morning_demand)
     disrupted_recalulated_pax_flow = G_ov_alternative_demand[target1][target2]['flow']
     disrupted_recalulated_pax_min_flow = G_ov_alternative_demand[target1][target2]['pax_min']
     result_tracks_ov_alternative.update({
