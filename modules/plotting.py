@@ -919,8 +919,9 @@ def plot_correlations(df: object, title: str = 'Infra correlations',filename:str
     plt.tight_layout()
     _show(fig)
 
-def plot_rdt_edge_metric(services: nx.Graph,pos_nodes: dict,edge_attribute: str,title: str,colorbar_label: str,filename: str,label_type: str,print_nodes: bool = False,cmap=plt.cm.Reds):
-    """Plots a numeric edge attribute from the service graph as a colorbar plot.
+def plot_rdt_edge_metric(services: nx.Graph,pos_nodes: dict,edge_attribute: str,title: str,colorbar_label:str='Value', filename: str='generic_rdt_metric',label_type: str=None,print_nodes: bool = False,cmap=plt.cm.Reds):
+    """
+    Plots a numeric edge attribute from the service graph as a colorbar plot.
 
     Args:
         services: The service graph with edge attributes.
@@ -1008,7 +1009,8 @@ def plot_disrupted_pax_minutes(
     print_nodes: bool = False,
     cmap=plt.cm.Reds,
 ):
-    """Plots disrupted passenger-minutes per service edge as a colorbar plot.
+    """
+    Plots disrupted passenger-minutes per service edge as a colorbar plot.
 
     For each edge, disrupted pax-minutes = (passenger flow across the edge) x (total minutes that edge was disrupted)
 
@@ -1022,7 +1024,6 @@ def plot_disrupted_pax_minutes(
         flow_attribute: The edge attribute holding passenger flow (default 'flow').
         duration_attribute: The edge attribute holding total disrupted minutes (default 'total_duration').
         print_nodes: Whether to draw nodes.
-        cmap: Matplotlib colormap to use (default: plt.cm.Reds).
     """
     # pax-min per edge = flow x total disrupted duration. Edges with no duration (never disrupted) get 0
     edge_metric = {}
@@ -1559,6 +1560,104 @@ def plot_highlighted_graph(
     elif label_type == "highlight":
         nx.draw_networkx_labels(G, pos=pos, font_size=8,
                                 labels={n: n for n in highlight_nodes}, ax=ax)
+
+    ax.set_xlim(3.5, 7.3)
+    ax.set_ylim(50.6, 53.5)
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+    ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
+
+    fig.tight_layout()
+    fig.savefig(sf.get_dir(f"figures/interventions/{filename}.jpg"), bbox_inches="tight", dpi=plot_dpi)
+    _show(fig)
+
+def plot_intervention_trajects(
+    G: nx.Graph,
+    pos: dict,
+    new_stations=None,
+    traject_edges: dict = None,
+    title_str: str = "Intervention trajects",
+    label_type: str = None,
+    node_size: int = 8,
+    base_edge_width: float = 1.0,
+    traject_width: float = 2.5,
+    filename: str = 'intervention_trajects',
+):
+    """
+    Labels the new sections of tracks.
+
+    Args:
+        G:               Improved graph.
+        pos:             Improved pos_tracks.
+        new_stations:    List of station names that are new
+        traject_edges:   {traject label: [(u, v), ...]} for new edges
+        node_size:       base node size
+        base_edge_width: width of the (grey) base-network edges.
+        traject_width:   width of the coloured traject edges.
+    """
+    # The names of the different trajects and their edges
+    if traject_edges is None:
+        traject_edges = {
+            'Nedersaksenlijn':       [('Stadskanaal', 'Veendam'), ('Stadskanaal', 'Ter Apel'), ('Emmen', 'Ter Apel')],
+            'Lelylijn':              [('Emmeloord', 'Lelystad Centrum'), ('Emmeloord', 'Heerenveen')],
+            'Lelylijn extension':    [('Drachten', 'Heerenveen'), ('Drachten', 'Leek'), ('Groningen', 'Leek')],
+            'Afsluitdijk alignment': [('Dronryp', 'Heerhugowaard')],
+        }
+
+    # Get new stations if not passed otherwise
+    if new_stations is not None:
+        new_names = set(new_stations.index) if isinstance(new_stations, (pd.DataFrame, pd.Series)) else set(new_stations)
+    else:
+        new_names = {n for n, d in G.nodes(data=True) if d.get("Type") == "new"}
+
+    cmap = plt.get_cmap('tab10')
+    colors = {label: mcolors.to_hex(cmap(i % 10)) for i, label in enumerate(traject_edges)}
+
+    # Collect items for plotting
+    present_edges = {}
+    traject_nodes = {}
+    for label, edges in traject_edges.items():
+        kept = [(u, v) for u, v in edges if G.has_edge(u, v)]
+        present_edges[label] = kept
+        endpoints = {n for u, v in kept for n in (u, v)}
+        traject_nodes[label] = sorted(n for n in endpoints if n in new_names)
+
+    # Plot default network
+    traject_edge_set = {frozenset(e) for edges in present_edges.values() for e in edges}
+    base_edges = [(u, v) for u, v in G.edges() if frozenset((u, v)) not in traject_edge_set]
+
+    fig, ax = plt.subplots(1, 1, figsize=(7, 8), dpi=plot_dpi)
+    ax.set_title(title_str)
+
+    nx.draw_networkx_nodes(G, pos=pos, node_color="lightgrey", edgecolors="grey",
+                           linewidths=0.3, node_size=node_size, ax=ax)
+    nx.draw_networkx_edges(G, pos=pos, edgelist=base_edges, edge_color="lightgrey",
+                           width=base_edge_width, ax=ax)
+
+    # Each traject on top in its own colour
+    legend_handles = []
+    for label, edges in present_edges.items():
+        color = colors[label]
+        if edges:
+            nx.draw_networkx_edges(G, pos=pos, edgelist=edges, edge_color=color,
+                                   width=traject_width, ax=ax)
+        if traject_nodes[label]:
+            nx.draw_networkx_nodes(G, pos=pos, nodelist=traject_nodes[label],
+                                   node_color=color, edgecolors="k", linewidths=0.5,
+                                   node_size=node_size * 3, ax=ax)
+        legend_handles.append(Line2D([0], [0], color=color, linewidth=traject_width, label=label))
+
+    # Labels
+    if label_type == "ic":
+        nx.draw_networkx_labels(G, pos=pos, font_size=8, labels=ic_node_labels(G), ax=ax)
+    elif label_type == "all":
+        nx.draw_networkx_labels(G, pos=pos, font_size=8, ax=ax)
+    elif label_type == "traject":
+        traject_label_nodes = {n: n for nodes in traject_nodes.values() for n in nodes}
+        nx.draw_networkx_labels(G, pos=pos, font_size=8, labels=traject_label_nodes, ax=ax)
+
+    ax.legend(handles=legend_handles, title="Intervention", loc="lower right", fontsize=8)
 
     ax.set_xlim(3.5, 7.3)
     ax.set_ylim(50.6, 53.5)

@@ -131,6 +131,22 @@ def add_new_stations(G:nx.Graph,trajects:list[str]=['nedersaksenlijn']):
 
     return G_new, pos_new
 
+def show_experiments(title: str = "Intervention trajects", label_type: str = None, filename: str = 'intervention_trajects'):
+    """
+    Used to plot the different intervention scenarios.
+    """
+    # Add all interventions to a graph (could be cleaned to subsequent interventions don't have to re-add every time?)
+    all_trajects = ['afsluitdijk', 'lelylijn', 'lelylijn_extension', 'nedersaksenlijn']
+    G_all, pos_new = add_new_stations(G_tracks, trajects=all_trajects)
+    pos_all = {**pos_tracks, **pos_new}
+
+    plotting.plot_intervention_trajects(
+        G_all, pos_all, new_stations=new_stations,
+        title_str=title, label_type=label_type, filename=filename,
+    )
+
+    return
+
 def compare_targeted_edge_disruptions(default_metrics:pd.DataFrame, intervention_metrics:dict, target1:str, target2:str):
     """
     Takes the default metrics and compares the values for the intervention metrics for some targeted edge.
