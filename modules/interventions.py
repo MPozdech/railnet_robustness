@@ -238,6 +238,45 @@ def combine_scenario_comparisons(
     combined = pd.concat(pieces, axis=1).reindex(ordered_index)
     return combined
 
+def compare_interventions(scenario_metrics: dict, scenario: str = 'default') -> pd.DataFrame:
+    """
+    Compare one replacement scenario across several interventions.
+
+    Takes the combined metric tables returned by run_intervention_scenario 
+    and pulls out one col from each.
+
+    Args:
+        scenario_metrics: {intervention label: metrics dataframe}. Column order
+                          follows the dict's insertion order.
+        scenario:         which column to pull from each table - 'default',
+                          'no alternative', 'ov' or 'ipv' for the metric tables..
+
+    Returns:
+        DataFrame with metrics as rows and one column per intervention.
+    """
+    if not scenario_metrics:
+        raise ValueError("scenario_metrics is empty - pass at least one {label: dataframe} entry.")
+
+    missing = {label: list(df.columns) for label, df in scenario_metrics.items() if scenario not in df.columns}
+    if missing:
+        label, available = next(iter(missing.items()))
+        raise KeyError(
+            f"scenario '{scenario}' not found in the metrics for '{label}'. Available columns: {available}"
+        )
+
+    # Row order: union of metrics across every intervention, first-seen order
+    ordered_index = []
+    for df in scenario_metrics.values():
+        for idx in df.index:
+            if idx not in ordered_index:
+                ordered_index.append(idx)
+
+    combined = pd.DataFrame(
+        {label: df[scenario] for label, df in scenario_metrics.items()}
+    ).reindex(ordered_index)
+
+    return combined
+
 def run_intervention_scenario(
     trajects: list[str],
     target1: str,

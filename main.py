@@ -368,6 +368,9 @@ interventions.baseline_ipv_alt        = metrics_edge_tracks_ipv_alt
 interventions.baseline_ov_alt         = metrics_edge_tracks_ov_alt
 interventions.old_track_betweenness   = betweenness_infra
 
+# Plot intervention experiments
+interventions.show_experiments(title="Proposed rail interventions")
+
 # Nedersaksenlijn
 (nodes_new_neder, edges_new_neder, betweenness_new_neder,
     int_neder_metrics, int_neder_comparison) = interventions.run_intervention_scenario(
@@ -397,6 +400,16 @@ interventions.old_track_betweenness   = betweenness_infra
 (nodes_new_neder_lely_extension_afsluitdijk, edges_new_neder_lely_extension_afsluitdijk, betweenness_new_neder_lely_extension_afsluitdijk,
     int_neder_lely_extended_afsluitdijk_metrics, int_neder_lely_extended_afsluitdijk_comparison) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn','lelylijn', 'lelylijn_extension','afsluitdijk'],scenario_name='nedersaksenlijn_w_lelylijn_extension_afsluitdijk',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
+
+# Cross-compare results
+across_interventions = interventions.compare_interventions({
+    'nedersaksenlijn'                : int_neder_metrics,
+    'lelylijn'                       : int_lely_metrics,
+    'lelylijn + extension'           : int_lely_extended_metrics,
+    'neder + lely'                   : int_neder_lely_metrics,
+    'neder + lely + extension'       : int_neder_lely_extended_metrics,
+    'neder + lely + ext + afsluitdijk': int_neder_lely_extended_afsluitdijk_metrics,
+}, scenario='default')
 
 # Get end time
 total_time = time.time() - start_time
