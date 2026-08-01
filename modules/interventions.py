@@ -356,6 +356,7 @@ def run_intervention_scenario(
     print(f"Finished intervention analysis of {scenario_name}")
 
     return (
+        G_new_demand, pos_all,
         nodes_new, edges_new, new_track_betweenness,
         combined_metrics, combined_comparison,
     )

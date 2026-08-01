@@ -7,6 +7,7 @@ import modules.disruptions   as disruptions     # type: ignore
 import modules.interventions as interventions   # type: ignore
 import modules.metrics       as metrics         # type: ignore
 import networkx as nx                           # type: ignore
+import pandas as pd                             # type: ignore
 import time
 
 ############ Script parameters ############
@@ -372,32 +373,32 @@ interventions.old_track_betweenness   = betweenness_infra
 interventions.show_experiments(title="Proposed rail interventions")
 
 # Nedersaksenlijn
-(nodes_new_neder, edges_new_neder, betweenness_new_neder,
+(G_i1, pos_i1, nodes_new_neder, edges_new_neder, betweenness_new_neder,
     int_neder_metrics, int_neder_comparison) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn'],scenario_name='nedersaksenlijn',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Lelylijn (no extension)
-(nodes_new_lely, edges_new_lely, betweenness_new_lely,
+(G_i2, pos_i2,nodes_new_lely, edges_new_lely, betweenness_new_lely,
     int_lely_metrics, int_lely_comparison) = interventions.run_intervention_scenario(
     trajects=['lelylijn'],scenario_name='lelylijn',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Lelylijn (with extension)
-(nodes_new_lely_extension, edges_new_lely_extension, betweenness_new_lely_extension,
+(G_i3, pos_i3, nodes_new_lely_extension, edges_new_lely_extension, betweenness_new_lely_extension,
     int_lely_extended_metrics, int_lely_extended_comparison) = interventions.run_intervention_scenario(
     trajects=['lelylijn_extension','lelylijn'],scenario_name='lelylijn_w_extension',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Nedersaksenlijn + Lelylijn (unextended)
-(nodes_new_neder_lely, edges_new_neder_lely, betweenness_new_neder_lely,
+(G_i4, pos_i4, nodes_new_neder_lely, edges_new_neder_lely, betweenness_new_neder_lely,
     int_neder_lely_metrics, int_neder_lely_comparison) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn','lelylijn'],scenario_name='nedersaksenlijn_w_lelylijn',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Nedersaksenlijn + Lelylijn (extended)
-(nodes_new_neder_lely_extension, edges_new_neder_lely_extension, betweenness_new_neder_lely_extension,
+(G_i5, pos_i5, nodes_new_neder_lely_extension, edges_new_neder_lely_extension, betweenness_new_neder_lely_extension,
     int_neder_lely_extended_metrics, int_neder_lely_extended_comparison) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn','lelylijn','lelylijn_extension'],scenario_name='nedersaksenlijn_w_lelylijn_extension',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
 # Nedersaksenlijn + Lelylijn (extended) + Afsluitdijk
-(nodes_new_neder_lely_extension_afsluitdijk, edges_new_neder_lely_extension_afsluitdijk, betweenness_new_neder_lely_extension_afsluitdijk,
+(G_i6, pos_i6, nodes_new_neder_lely_extension_afsluitdijk, edges_new_neder_lely_extension_afsluitdijk, betweenness_new_neder_lely_extension_afsluitdijk,
     int_neder_lely_extended_afsluitdijk_metrics, int_neder_lely_extended_afsluitdijk_comparison) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn','lelylijn', 'lelylijn_extension','afsluitdijk'],scenario_name='nedersaksenlijn_w_lelylijn_extension_afsluitdijk',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
@@ -423,8 +424,20 @@ across_interventions_disruption_comparison = interventions.compare_interventions
 across_interventions_disruption_comparison['default_ov'] = int_neder_comparison['default_ov'] # Doesn't matter which, all the same.
 plotting.plot_pax_flow_barchart(across_interventions_disruption_comparison, title='Interventions on passenger flow across Zwolle-Meppel', filename='intervention_disrupted_pax_flow_comparison', figsize=(7,5))
 
-plotting.plot_edge_measure(G_tracks, G_tracks, pos_tracks, pos_tracks, betweenness_new_neder_lely, betweenness_new_neder_lely_extension, title_str='Betweenness centrality for extended and unextended Lelylijn',filename='betweenness_intervention_comparison_lely_extension',left_subtitle = "a) unextended Lelylijn", right_subtitle = "b) extended Lelylijn",save_dir='interventions')
-#Gracks does not have new trajects, need to expose these! sloppy coding 
+plotting.plot_edge_measure(G_i4, G_i5, pos_i4, pos_i5, betweenness_new_neder_lely, betweenness_new_neder_lely_extension, title_str='Betweenness centrality for extended and unextended Lelylijn',filename='betweenness_intervention_comparison_lely_extension',left_subtitle = "a) unextended Lelylijn", right_subtitle = "b) extended Lelylijn",save_dir='interventions')
+
+# Collect betweenness
+betweenness_interventions = {
+    'default'                         : betweenness_infra,
+    'nedersaksenlijn'                 : betweenness_new_neder,
+    'lelylijn'                        : betweenness_new_lely,
+    'lelylijn + extension'            : betweenness_new_lely_extension,
+    'neder + lely'                    : betweenness_new_neder_lely,
+    'neder + lely + extension'        : betweenness_new_neder_lely_extension,
+    'neder + lely + ext + afsluitdijk': betweenness_new_neder_lely_extension_afsluitdijk,}
+
+across_interventions_betweenness = pd.DataFrame.from_dict(betweenness_interventions, orient='columns')
+
 # Get end time
 total_time = time.time() - start_time
 print(f"Script finished at: {time.strftime('%H:%M:%S')}, started at: {time.strftime('%H:%M:%S', time.gmtime(start_time))}. Total: {time.strftime('%H:%M:%S', time.gmtime(total_time))}")
