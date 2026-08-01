@@ -411,6 +411,20 @@ across_interventions = interventions.compare_interventions({
     'neder + lely + ext + afsluitdijk': int_neder_lely_extended_afsluitdijk_metrics,
 }, scenario='default')
 
+across_interventions_disruption_comparison = interventions.compare_interventions({
+    'nedersaksenlijn'                : int_neder_comparison,
+    'lelylijn'                       : int_lely_comparison,
+    'lelylijn + extension'           : int_lely_extended_comparison,
+    'neder + lely'                   : int_neder_lely_comparison,
+    'neder + lely + extension'       : int_neder_lely_extended_comparison,
+    'neder + lely + ext + afsluitdijk': int_neder_lely_extended_afsluitdijk_comparison,
+}, scenario='improved_ov')
+
+across_interventions_disruption_comparison['default_ov'] = int_neder_comparison['default_ov'] # Doesn't matter which, all the same.
+plotting.plot_pax_flow_barchart(across_interventions_disruption_comparison, title='Interventions on passenger flow across Zwolle-Meppel', filename='intervention_disrupted_pax_flow_comparison', figsize=(7,5))
+
+plotting.plot_edge_measure(G_tracks, G_tracks, pos_tracks, pos_tracks, betweenness_new_neder_lely, betweenness_new_neder_lely_extension, title_str='Betweenness centrality for extended and unextended Lelylijn',filename='betweenness_intervention_comparison_lely_extension',left_subtitle = "a) unextended Lelylijn", right_subtitle = "b) extended Lelylijn",save_dir='interventions')
+#Gracks does not have new trajects, need to expose these! sloppy coding 
 # Get end time
 total_time = time.time() - start_time
 print(f"Script finished at: {time.strftime('%H:%M:%S')}, started at: {time.strftime('%H:%M:%S', time.gmtime(start_time))}. Total: {time.strftime('%H:%M:%S', time.gmtime(total_time))}")

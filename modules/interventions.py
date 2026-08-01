@@ -246,10 +246,8 @@ def compare_interventions(scenario_metrics: dict, scenario: str = 'default') -> 
     and pulls out one col from each.
 
     Args:
-        scenario_metrics: {intervention label: metrics dataframe}. Column order
-                          follows the dict's insertion order.
-        scenario:         which column to pull from each table - 'default',
-                          'no alternative', 'ov' or 'ipv' for the metric tables..
+        scenario_metrics: {intervention label: metrics dataframe}. Column order follows the dict's insertion order.
+        scenario: which column to pull from each table - 'default','no alternative', 'ov' or 'ipv' for the metric tables..
 
     Returns:
         DataFrame with metrics as rows and one column per intervention.
@@ -310,13 +308,16 @@ def run_intervention_scenario(
     )
     nodes_new, edges_new = sf.graph_to_dataframes(G_new_demand)
 
-    new_track_betweenness = nx.edge_betweenness_centrality(G_new_demand, normalized=True, weight='travel_time')
     plotting.plot_flow_diff(
         G_tracks, G_new_demand, pos_all,
         title_str=f'Flow difference - {scenario_name}',
         filename=f'flow_diff_{scenario_name}',
     )
 
+    plotting.plot_rdt_edge_metric(G_new_demand, pos_all, edge_attribute='flow', title=f'Passenger flow - {scenario_name}', filename=f'flow_{scenario_name}', colorbar_label='Morning rush hour passengers')
+
+    #
+    new_track_betweenness = nx.edge_betweenness_centrality(G_new_demand, normalized=True, weight='travel_time')
     plotting.plot_edge_measure(
         G_tracks, G_new_demand, pos_all, pos_all,
         old_track_betweenness, new_track_betweenness,
@@ -341,7 +342,7 @@ def run_intervention_scenario(
     # Undisrupted baseline for the improved network
     default_metrics = metrics.edge_metrics(G_new_demand, source=None, target=None)
 
-    # One-table metric summary: metrics as rows, a column each for default/no-alt/ov/ipv (improved network)
+    # One-table metric summary: metrics as rows, a column each for default/no-alt/ov/ipv 
     combined_metrics = combine_scenario_metrics(default_metrics, targeted_no_alternative, targeted_ipv_alt, targeted_ov_alt)
 
     # Undisrupted comparison

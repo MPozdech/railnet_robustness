@@ -1634,6 +1634,8 @@ def plot_intervention_trajects(
                            linewidths=0.3, node_size=node_size, ax=ax)
     nx.draw_networkx_edges(G, pos=pos, edgelist=base_edges, edge_color="lightgrey",
                            width=base_edge_width, ax=ax)
+    nx.draw_networkx_labels(G, pos=pos, font_size=8,
+                                    labels={n: n for n in new_names}, ax=ax)
 
     # Each traject on top in its own colour
     legend_handles = []
@@ -1644,7 +1646,7 @@ def plot_intervention_trajects(
                                    width=traject_width, ax=ax)
         if traject_nodes[label]:
             nx.draw_networkx_nodes(G, pos=pos, nodelist=traject_nodes[label],
-                                   node_color=color, edgecolors="k", linewidths=0.5,
+                                   node_color=color, edgecolors="k", linewidths=0,
                                    node_size=node_size * 3, ax=ax)
         legend_handles.append(Line2D([0], [0], color=color, linewidth=traject_width, label=label))
 
@@ -2279,5 +2281,154 @@ def plot_degree_histogram(G:nx.Graph, title:str='Degree histogram'):
     ax.legend()
     fig.tight_layout()
     fig.savefig(sf.get_dir(f"figures/basic/{title}.jpg"), bbox_inches="tight", dpi=plot_dpi-50)
+    _show(fig)
+    return
+
+def plot_pax_flow_barchart(df: pd.DataFrame, title:str='Passenger change by intervention', filename:str='pax_flow_barchart',figsize:tuple=(7,5)):
+    """
+    Plots a stacked bar chart of passenger flow changes by intervention.
+    """
+    columns = [
+        "nedersaksenlijn",
+        "lelylijn",
+        "lelylijn + extension",
+        "neder + lely",
+        "neder + lely + extension",
+        "neder + lely + ext + afsluitdijk",
+    ]
+
+    scenario_labels = ["I1", "I2", "I3", "I4", "I5", "I6"]
+
+    baseline = df.loc["disrupted_pax_flow", "default_ov"]
+
+    # Data
+    disrupted = df.loc["disrupted_recalulated_pax_flow", columns]
+    rerouting = df.loc["disrupted_pax_flow", columns] - disrupted
+    intervention = baseline - df.loc["disrupted_pax_flow", columns]
+
+    disrupted_pct = disrupted / baseline * 100
+    rerouting_pct = rerouting / baseline * 100
+    intervention_pct = intervention / baseline * 100
+
+    # Plot
+    fig, ax = plt.subplots(figsize=figsize)
+
+    y = np.arange(len(columns))
+
+    # ColorBrewer Set2
+    colors = [
+        "#1F78B4",
+        "#33A02C",
+        "#FF7F00",
+    ]
+
+    bars1 = ax.barh(
+        y,
+        disrupted_pct,
+        color=colors[0],
+        label="Disrupted flow",
+    )
+
+    bars2 = ax.barh(
+        y,
+        rerouting_pct,
+        left=disrupted_pct,
+        color=colors[1],
+        label="Rerouted flow",
+    )
+
+    bars3 = ax.barh(
+        y,
+        intervention_pct,
+        left=disrupted_pct + rerouting_pct,
+        color=colors[2],
+        label="Intervention flow",
+    )
+
+    # Labels inside bars
+    def add_labels(values_pct, values_raw, left, bars, text_color="black", min_width=6):
+        for pct, raw, l, bar in zip(values_pct, values_raw, left, bars):
+
+            if pct < min_width:
+                continue
+
+            ax.text(
+                l + pct / 2,
+                bar.get_y() + bar.get_height()/2,
+                f"{pct:.1f}%\n({raw:,.0f})",
+                ha="center",
+                va="center",
+                fontsize=9,
+                color=text_color,
+                fontweight="bold",
+            )
+
+    add_labels(
+        disrupted_pct,
+        disrupted,
+        np.zeros(len(columns)),
+        bars1,
+        text_color="black"
+    )
+
+    add_labels(
+        rerouting_pct,
+        rerouting,
+        disrupted_pct,
+        bars2,
+        text_color="black"
+    )
+
+    add_labels(
+        intervention_pct,
+        intervention,
+        disrupted_pct + rerouting_pct,
+        bars3,
+        text_color="black"
+    )
+
+    # Formatting
+    ax.set_xlim(0, 100)
+
+    ticks = np.arange(0, 101, 10)
+    ticklabels = [f"{t:d}%" for t in ticks]
+    ticklabels[-1] = f"100%\n({baseline:,.0f})"
+
+    ax.set_xticks(ticks)
+    ax.set_xticklabels(ticklabels)
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(scenario_labels)
+
+    ax.invert_yaxis()
+
+    ax.set_xlabel("Passenger flow during morning peak", fontsize=12)
+
+    # Light grid
+    ax.grid(
+        axis="x",
+        color="#D9D9D9",
+        linewidth=0.8,
+    )
+
+    ax.set_axisbelow(True)
+
+    # Remove frame
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+
+    # Remove tick marks
+    ax.tick_params(axis='both', length=0)
+
+    # Legend
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.15),
+        ncol=3,
+        frameon=False,
+    )
+    ax.set_title(title)
+    fig.tight_layout()
+    fig.savefig(sf.get_dir(f"figures/interventions/{filename}.jpg"), bbox_inches="tight", dpi=plot_dpi)
     _show(fig)
     return
