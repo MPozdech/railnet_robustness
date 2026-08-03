@@ -166,3 +166,24 @@ def compute_disrupted_passengers(edges_with_disruptions: pd.DataFrame,track_node
         )
 
     return edges_with_disruptions["co_disruption_count"].apply(_row_total)
+
+def weight_edge_measure_output(measures: dict, df: pd.DataFrame, df_column_id:str='flow'):
+    """
+    Multiply the measure values by some value from the from the df, keyed by edge. 
+    """
+    flow_lookup = (
+        df.set_index(['source', 'target'])[df_column_id]
+        .to_dict()
+    )
+
+    weighted = {}
+
+    for edge, value in measures.items():
+        flow = flow_lookup.get(edge)
+
+        if flow is None:
+            flow = flow_lookup.get((edge[1], edge[0]), 0)
+
+        weighted[edge] = value * flow
+
+    return weighted

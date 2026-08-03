@@ -85,7 +85,7 @@ services    = dp.node_pairs_joining(services,track_nodes,services_disrupted,disr
 plotting.plot_column_distribution(track_nodes,'MorningRush',title=f'Morning Demand % Histogram',filename='MorningPeak_histogram',bins=16)
 plotting.plot_catchment_vs_travelers(track_nodes,catchments,filename='scatter_catchment_travelers')
 disruption_bins = [0,60,2*60,3*60,4*60,5*60,6*60,7*60,8*60,9*60,10*60,11*60,12*60,13*60,14*60,15*60,16*60,17*60,18*60,19*60,20*60,21*60,22*60,23*60,24*60]
-plotting.plot_ipv_coverage_by_duration(replacement_coverage,bins=disruption_bins,filename='ipv_coverage_by_duration',title='The percentage of disruptions that had an IPV service provided')
+plotting.plot_ipv_coverage_by_duration(replacement_coverage,bins=disruption_bins,filename='ipv_coverage_by_duration',title='The percentage of disruptions that had an IPV service provided',figsize=(8,5),plot_numbers=False)
 
 # Extract the positions of the nodes and segments that are passed for plotting later
 pos_stations = dp.coord_positions(stations, "stations")
@@ -201,8 +201,8 @@ plotting.plot_metric_boxplots(dfs=[metrics_edge_services_no_alternative, metrics
 plotting.plot_metric_boxplots(dfs=[metrics_block_tracks_no_alternative, metrics_block_tracks_ov_alt, metrics_block_tracks_ipv_alt], group_labels=['blocks w/o alternatives','blocks w/ OV','blocks w/ IPV'], title='Comparing metric impacts of block disruptions to the track graph for different scenarios',metric_groups=perf_metrics,scaling='zscore',filename='block_tracks',figsize=(16,10))
 plotting.plot_metric_boxplots(dfs=[metrics_block_services_no_alternative, metrics_block_services_ov_alt, metrics_block_services_ipv_alt], group_labels=['blocks w/o alternatives','blocks w/ OV','blocks w/ IPV'], title='Comparing metric impacts of block disruptions to the service graph for different scenarios',metric_groups=perf_metrics,scaling='zscore',filename='block_services',figsize=(16,10))
 
-plotting.plot_metric_boxplots(dfs=[metrics_edge_tracks_no_alternative, metrics_node_tracks_no_alternative, metrics_block_tracks_no_alternative], group_labels=['edge disruptions','node disruptions','block disruptions'], title='Comparing metric impacts of different disruption types to the track graph, no alternative',metric_groups=perf_metrics,scaling='zscore',filename='tracks_disruption_types',figsize=(12,10))
-plotting.plot_metric_boxplots(dfs=[metrics_edge_services_no_alternative, metrics_edge_services_ov_alt, metrics_edge_services_ipv_alt], group_labels=['service graph w/o alternatives','service graph w/ line buses','service graph w/ IPV buses'], title='Comparing metric impacts of edge disruptions to the service graph for different replacement scenarios',metric_groups=perf_metrics,scaling='zscore',filename='edge_services_different_replacements',figsize=(12,10))                                  
+plotting.plot_metric_boxplots(dfs=[metrics_edge_tracks_no_alternative, metrics_node_tracks_no_alternative, metrics_block_tracks_no_alternative], group_labels=['edge disruptions','node disruptions','block disruptions'], title='Comparing metric impacts of different disruption types to the track graph, no alternative',metric_groups=perf_metrics,scaling='zscore',filename='tracks_disruption_types',figsize=(11,10))
+plotting.plot_metric_boxplots(dfs=[metrics_edge_services_no_alternative, metrics_edge_services_ov_alt, metrics_edge_services_ipv_alt], group_labels=['service graph w/o alternatives','service graph w/ line buses','service graph w/ IPV buses'], title='Comparing metric impacts of edge disruptions to the service graph for different replacement scenarios',metric_groups=perf_metrics,scaling='zscore',filename='edge_services_different_replacements',figsize=(11,10))                                  
 plotting.plot_metric_boxplots(dfs=[metrics_edge_tracks_ipv_alt,metrics_edge_services_ipv_alt],group_labels=['track graph','service graph'], title='The spread of travel times for the track and service graphs',metric_groups=tt_metrics,scaling='zscore',filename='edges_different_replacements_travel_time',figsize=(7,4))
 
 # Get worst elements from edge disruptions
@@ -242,6 +242,7 @@ plotting.plot_node_measure(G_tracks, G_tracks, pos_tracks, pos_tracks, eigen_inf
 plotting.plot_measure(G_services, pos_stations, 'node', pagerank_service_weight, "Service PageRank centrality (weight = flow)", filename='pagerank_services_single', nodesize_scale=10000,)
 plotting.plot_measure(G_tracks, pos_tracks, 'edge', betweenness_infra, "Track betweenness centrality (weight = travel_time)", filename='betweenness_infra_single')
 plotting.plot_node_measure(G_tracks, G_services, pos_tracks, pos_stations, eigen_infra_weight, eigen_service_weight, "Unnormalized eigenvector centrality (weight = flow) ", nodesize_scale=200, filename='eigenvector_unnormalzied_with_flow_weight',left_subtitle = "a) track graph", right_subtitle = "b) service graph",)
+plotting.plot_measure(G_tracks,pos_tracks,'edge',measure_values=sf.weight_edge_measure_output(measures=betweenness_infra,df=edges_demand,df_column_id='flow'),title_str='Track graph betweenness centrality weighted by edge flow',filename='flow-weighted_betweenness',colorbar_label='Betweenness x pax-flow',label_type=None)
 
 # Collect measures
 measures_edges_infra = {
