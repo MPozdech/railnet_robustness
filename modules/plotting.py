@@ -9,6 +9,7 @@ import numpy as np
 import powerlaw
 from scipy.stats import pearsonr
 import modules.supporting_functions as sf # type: ignore
+import modules.metrics as metrics # type: ignore
 from collections import Counter
 
 """
@@ -1098,6 +1099,8 @@ def plot_ipv_coverage_by_duration(
     title: str = 'IPV replacement coverage by disruption duration',
     filename: str = 'ipv_coverage_by_duration',
     color: str = 'steelblue',
+    figsize: tuple = (9, 5),
+    plot_numbers: bool = False,
 ):
     """
     Line chart of the share of disruptions that received at least one IPV
@@ -1144,23 +1147,24 @@ def plot_ipv_coverage_by_duration(
 
     n_buckets = len(labels)
     fig_w = min(14, max(7, n_buckets * 0.42))
-    fig, ax = plt.subplots(figsize=(fig_w, 4.5), dpi=plot_dpi)
+    fig, ax = plt.subplots(figsize=figsize, dpi=plot_dpi)
 
     ax.plot(x, y, color=color, linewidth=1.6, marker='o', markersize=6,
             markerfacecolor='white', markeredgecolor=color, markeredgewidth=1.4, zorder=3)
 
     # Annotate each point, alternating above / below the line
-    for i, (xi, yi) in enumerate(zip(x, y)):
-        if np.isnan(yi):
-            continue
-        above = (i % 2 == 0)
-        ax.annotate(
-            f"{yi:.1f}%",
-            xy=(xi, yi),
-            xytext=(0, 9 if above else -9), textcoords="offset points",
-            ha='center', va='bottom' if above else 'top',
-            fontsize=7, color=color, zorder=4,
-        )
+    if plot_numbers:
+        for i, (xi, yi) in enumerate(zip(x, y)):
+            if np.isnan(yi):
+                continue
+            above = (i % 2 == 0)
+            ax.annotate(
+                f"{yi:.1f}%",
+                xy=(xi, yi),
+                xytext=(0, 9 if above else -9), textcoords="offset points",
+                ha='center', va='bottom' if above else 'top',
+                fontsize=7, color=color, zorder=4,
+            )
 
     # Ticks are placed only at data points that land on a whole hour
     is_whole_hour = np.isclose(x_regular, np.round(x_regular), atol=1e-6)
@@ -2261,7 +2265,7 @@ def plot_degree_histogram(G:nx.Graph, title:str='Degree histogram'):
     degree_sequence = [d for n, d in G.degree() if d > 0]
     fit = powerlaw.Fit(degree_sequence, verbose=0,discrete=True)
 
-    fig, ax = plt.subplots(figsize=(5, 3), dpi=200)
+    fig, ax = plt.subplots(figsize=(5, 3), dpi=plot_dpi)
 
     # Histogram bars
     counts = Counter(degree_sequence)
@@ -2431,4 +2435,157 @@ def plot_pax_flow_barchart(df: pd.DataFrame, title:str='Passenger change by inte
     fig.tight_layout()
     fig.savefig(sf.get_dir(f"figures/interventions/{filename}.jpg"), bbox_inches="tight", dpi=plot_dpi)
     _show(fig)
+    return
+
+def plot_highlighted_paths(
+    G: nx.Graph,
+    pos: dict,
+    paths: list[tuple[str, str]] = [('Roermond','Zaandam'),('Woerden','Meppel'),('Nijmegen','Zwolle')],
+    title: str = "Highlighted shortest paths",
+    label_type: str = None,
+    plot_nodes: bool = False,
+    node_size: int = 8,
+    edge_width: float = 1.0,
+    filename: str = "rail_highways",
+):
+    """
+    Plot a graph highlighting one or more shortest paths.
+
+    paths = List of source-target pairs to highlight
+    """
+
+    # Find shortest paths
+    highlight_nodes = set()
+    highlight_edges = set()
+
+    for source, target in paths:
+
+        path = nx.shortest_path(
+            G,
+            source=source,
+            target=target,
+            weight="travel_time",
+        )
+
+        highlight_nodes.update(path)
+
+        highlight_edges.update(
+            tuple(sorted((u, v)))
+            for u, v in zip(path[:-1], path[1:])
+        )
+
+    # Separate highlighted and normal graph elements
+    highlighted_nodes = list(highlight_nodes)
+
+    normal_nodes = [
+        n for n in G.nodes
+        if n not in highlight_nodes
+    ]
+
+    highlighted_edges = []
+    normal_edges = []
+
+    for u, v in G.edges():
+
+        edge = tuple(sorted((u, v)))
+
+        if edge in highlight_edges:
+            highlighted_edges.append((u, v))
+        else:
+            normal_edges.append((u, v))
+
+    # Plot
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=(7, 8),
+        dpi=plot_dpi,
+    )
+
+    ax.set_title(title)
+
+    # Grey graph
+    nx.draw_networkx_edges(
+        G,
+        pos,
+        edgelist=normal_edges,
+        edge_color="lightgrey",
+        width=edge_width,
+        ax=ax,
+    )
+
+    if plot_nodes:
+        nx.draw_networkx_nodes(
+        G,
+        pos,
+        nodelist=normal_nodes,
+        node_color="lightgrey",
+        edgecolors="k",
+        linewidths=0.3,
+        node_size=node_size,
+        ax=ax,
+    )
+        nx.draw_networkx_nodes(
+            G,
+            pos,
+            nodelist=highlighted_nodes,
+            node_color="red",
+            edgecolors="k",
+            linewidths=0.3,
+            node_size=node_size,
+            ax=ax,
+        )
+
+    # Highlighted paths
+    nx.draw_networkx_edges(
+        G,
+        pos,
+        edgelist=highlighted_edges,
+        edge_color="red",
+        width=edge_width * 2,
+        ax=ax,
+    )
+
+    
+
+    # Labels
+    if label_type == "all":
+        nx.draw_networkx_labels(
+            G,
+            pos,
+            font_size=8,
+            ax=ax,
+        )
+
+    elif label_type == "highlight":
+        nx.draw_networkx_labels(
+            G,
+            pos,
+            labels={n: n for n in highlighted_nodes},
+            font_size=8,
+            ax=ax,
+        )
+
+    elif label_type == "ic":
+        nx.draw_networkx_labels(
+            G,
+            pos,
+            labels=ic_node_labels(G),
+            font_size=8,
+            ax=ax,
+        )
+
+    ax.set_aspect("equal", adjustable="box")
+    ax.axis('off')
+    ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+    )
+
+    fig.tight_layout()
+    fig.savefig(sf.get_dir(f"figures/discussion/{filename}.jpg"),bbox_inches="tight",dpi=plot_dpi,)
+    _show(fig)
+
     return

@@ -104,6 +104,7 @@ G_services = sf.set_node_attributes_from_dataframe(G_services, track_nodes)
 plotting.plot_basic_graph(G_tracks,pos_tracks,"Service and Track Graphs - planned for 2026", G_services, pos_stations,label_type=None,filename='basic_tracks_services') #None, ic, all for labels
 plotting.plot_degree_histogram(G_tracks,title='Track graph degree histogram')
 plotting.plot_degree_histogram(G_services,title='Service graph degree histogram')
+plotting.plot_highlighted_paths(G_tracks,pos_tracks,title='Primary lines for long-distance travel',filename='rail_highways')
 
 # Create track blocks
 G_tracks, n_blocks       = dp.create_blocks(G_tracks,num_matching_nodes_required=NUM_MATCHING_NODES_REQUIRED)
@@ -242,7 +243,7 @@ plotting.plot_node_measure(G_tracks, G_tracks, pos_tracks, pos_tracks, eigen_inf
 plotting.plot_measure(G_services, pos_stations, 'node', pagerank_service_weight, "Service PageRank centrality (weight = flow)", filename='pagerank_services_single', nodesize_scale=10000,)
 plotting.plot_measure(G_tracks, pos_tracks, 'edge', betweenness_infra, "Track betweenness centrality (weight = travel_time)", filename='betweenness_infra_single')
 plotting.plot_node_measure(G_tracks, G_services, pos_tracks, pos_stations, eigen_infra_weight, eigen_service_weight, "Unnormalized eigenvector centrality (weight = flow) ", nodesize_scale=200, filename='eigenvector_unnormalzied_with_flow_weight',left_subtitle = "a) track graph", right_subtitle = "b) service graph",)
-plotting.plot_measure(G_tracks,pos_tracks,'edge',measure_values=sf.weight_edge_measure_output(measures=betweenness_infra,df=edges_demand,df_column_id='flow'),title_str='Track graph betweenness centrality weighted by edge flow',filename='flow-weighted_betweenness',colorbar_label='Betweenness x pax-flow',label_type=None)
+plotting.plot_measure(G_tracks,pos_tracks,'edge',measure_values=sf.weight_edge_measure_output(measures=betweenness_infra,df=edges_demand,df_column_id='flow'),title_str='Track betweenness weighted by edge flow',filename='flow-weighted_betweenness',colorbar_label='Betweenness * pax-flow',label_type=None)
 
 # Collect measures
 measures_edges_infra = {
@@ -293,11 +294,11 @@ measures_blocks_services = {
     'pagerank_service'      : sf.map_node_values_to_blocks(G_tracks_demand,pagerank_service_none),
 }
 
-plotting.plot_measure_boxplots([betweenness_infra,betweenness_service,betweenness_infra_nodes,betweenness_service_nodes,measures_blocks_infra['betweenness_infra'],measures_blocks_services['betweenness_services']],['Edge tracks', 'Edge services', 'Node tracks','Node services','Block tracks','Block services'],scaling='none', title='Comparison of betweeness centrality',filename='betweenness_comparison',figsize=(5,4))
+plotting.plot_measure_boxplots([betweenness_infra,betweenness_service,betweenness_infra_nodes,betweenness_service_nodes,measures_blocks_infra['betweenness_infra'],measures_blocks_services['betweenness_services']],['Edge tracks', 'Edge services', 'Node tracks','Node services','Block tracks','Block services'],scaling='none', title='Comparison of betweeness centrality',filename='betweenness_comparison',figsize=(5,3))
 
-plotting.plot_measure_boxplots([betweenness_infra,eigen_infra_none,eigen_infra_weight,closeness_infra,pagerank_infra_none,pagerank_infra_weight],['Betweenness','Eigenvector (unweighted)','Eigenvector (weighted)','Closeness','PageRank (unweighted)','PageRank (weighted)'],scaling='zscore',title='Comparison of different measures for the track graph',filename='track_measure_comparison_zscore',figsize=(5,4))
-plotting.plot_measure_boxplots([betweenness_infra,eigen_infra_none,eigen_infra_weight,closeness_infra,pagerank_infra_none,pagerank_infra_weight],['Betweenness','Eigenvector (unweighted)','Eigenvector (weighted)','Closeness','PageRank (unweighted)','PageRank (weighted)'],scaling='none',title='Comparison of different measures for the track graph',filename='track_measure_comparison',figsize=(5,4))
-plotting.plot_measure_boxplots([closeness_infra,pagerank_infra_none,pagerank_infra_weight],['Closeness','PageRank (unweighted)','PageRank (weighted)'],scaling='none',title='Comparison of Closeness and PageRank measure values',filename='measure_detailed_comparison',figsize=(5,4))
+plotting.plot_measure_boxplots([betweenness_infra,eigen_infra_none,eigen_infra_weight,closeness_infra,pagerank_infra_none,pagerank_infra_weight],['Betweenness','Eigenvector (unweighted)','Eigenvector (weighted)','Closeness','PageRank (unweighted)','PageRank (weighted)'],scaling='zscore',title='Comparison of different measures for the track graph',filename='track_measure_comparison_zscore',figsize=(5,3))
+plotting.plot_measure_boxplots([betweenness_infra,eigen_infra_none,eigen_infra_weight,closeness_infra,pagerank_infra_none,pagerank_infra_weight],['Betweenness','Eigenvector (unweighted)','Eigenvector (weighted)','Closeness','PageRank (unweighted)','PageRank (weighted)'],scaling='none',title='Comparison of different measures for the track graph',filename='track_measure_comparison',figsize=(5,3))
+plotting.plot_measure_boxplots([closeness_infra,pagerank_infra_none,pagerank_infra_weight],['Closeness','PageRank (unweighted)','PageRank (weighted)'],scaling='none',title='Comparison of Closeness and PageRank measure values',filename='measure_detailed_comparison',figsize=(5,3))
 
 plotting.plot_measure_boxplots(
     {'a) 1st series': [betweenness_infra, eigen_infra_none, eigen_infra_weight],
