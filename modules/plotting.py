@@ -772,7 +772,7 @@ def plot_disruption_heatmap(
     # Set colors
     all_edges = list(infra.edges())
     target_set = {(target1, target2), (target2, target1)}
-    edge_colors = ["#e63946" if e in target_set else "#cccccc" for e in all_edges]
+    edge_colors = ["#e63946" if e in target_set else "lightgrey" for e in all_edges]
     edge_widths = [3.5 if e in target_set else edge_width for e in all_edges]
 
     # Plot
@@ -799,14 +799,17 @@ def plot_disruption_heatmap(
         ax=ax
     )
 
-    # Unaffected: small black dots, no label
+    # Unaffected nodes
     nx.draw_networkx_nodes(
-        infra, pos_segments,
-        nodelist=unaffected_nodes,
-        node_color="black",
-        node_size=5,
-        ax=ax,
-    )
+            infra,
+            pos_segments,
+            nodelist=unaffected_nodes,
+            node_color="lightgrey",
+            edgecolors="k",
+            linewidths=0.3,
+            node_size=5,
+            ax=ax,
+        )
 
     # Affected: full colormap, larger, with labels
     affected_colors = [colormap(norm(disruption_count.get(n, 0))) for n in affected_nodes]
@@ -815,12 +818,16 @@ def plot_disruption_heatmap(
         nodelist=affected_nodes,
         node_color=affected_colors,
         node_size=100,
+        edgecolors="k",
+        linewidths=0.3,
         ax=ax,
     )
+
+    ic_labels = ic_node_labels(infra)
     nx.draw_networkx_labels(
         infra, pos_segments,
-        labels={n: n for n in affected_nodes},  # only label affected nodes
-        font_size=6,
+        labels = {n: n for n in affected_nodes if n in ic_labels.keys()},  # only label affected nodes
+        font_size=8,
         font_color="black",
         ax=ax,
     )
@@ -836,7 +843,13 @@ def plot_disruption_heatmap(
         f"Disruption heatmap for edge {target1} - {target2} ({int(n_disruptions)} disruptions)",
         fontsize=13, fontweight="bold", pad=14,
     )
-    ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
+    ax.axis('off')
+    ax.tick_params(
+            bottom=False,
+            left=False,
+            labelbottom=False,
+            labelleft=False,
+        )
     plt.tight_layout()
     fig.savefig(sf.get_dir(f"figures/rdt/codisruption_heatmap_{target1}_{target2}.jpg"),bbox_inches="tight",dpi=plot_dpi)
     _show(fig)
@@ -2275,10 +2288,8 @@ def plot_degree_histogram(G:nx.Graph, title:str='Degree histogram'):
     ax.bar(degrees, probs, color='steelblue', alpha=0.6, label='Empirical')
 
     # Powerlaw overlays
-    fit.power_law.plot_pdf(color='g', linestyle='--', ax=ax, label=f'Power law (α={fit.alpha:.2f})')
+    fit.power_law.plot_pdf(color='g', linestyle='--', ax=ax, label=f'Power law (α={metrics.scale_factor(G):.2f})')
 
-    ax.set_xscale('log')
-    ax.set_yscale('log')
     ax.set_title(title)
     ax.set_ylabel("Degree frequency")
     ax.set_xlabel("Degree")
@@ -2584,8 +2595,12 @@ def plot_highlighted_paths(
         labelleft=False,
     )
 
+
+
+
+
+
     fig.tight_layout()
     fig.savefig(sf.get_dir(f"figures/discussion/{filename}.jpg"),bbox_inches="tight",dpi=plot_dpi,)
     _show(fig)
-
     return

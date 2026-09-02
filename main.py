@@ -105,7 +105,7 @@ plotting.plot_basic_graph(G_tracks,pos_tracks,"Service and Track Graphs - planne
 plotting.plot_degree_histogram(G_tracks,title='Track graph degree histogram')
 plotting.plot_degree_histogram(G_services,title='Service graph degree histogram')
 plotting.plot_highlighted_paths(G_tracks,pos_tracks,title='Primary lines for long-distance travel',filename='rail_highways')
-
+    
 # Create track blocks
 G_tracks, n_blocks       = dp.create_blocks(G_tracks,num_matching_nodes_required=NUM_MATCHING_NODES_REQUIRED)
 plotting.plot_blocks(G_tracks,pos_tracks,strictness=NUM_MATCHING_NODES_REQUIRED,n_blocks=n_blocks)
@@ -129,6 +129,7 @@ print(f"Finished construction at: {time.strftime('%H:%M:%S')}")
 
 ##### RDT data #####
 plotting.plot_disruption_heatmap(G_tracks,G_services,pos_tracks,pos_stations,services,target1=TARGET1,target2=TARGET2,print_output=False)
+plotting.plot_disruption_heatmap(G_tracks,G_services,pos_tracks,pos_stations,services,target1='Amsterdam Sloterdijk',target2='Amsterdam Centraal', print_output=False)
 plotting.ipv_services(G_services,pos_stations,None,print_nodes=True)
 plotting.plot_rdt_edge_metric(
     G_services,pos_stations,edge_attribute='pct_services_cancelled',
@@ -244,6 +245,7 @@ plotting.plot_measure(G_services, pos_stations, 'node', pagerank_service_weight,
 plotting.plot_measure(G_tracks, pos_tracks, 'edge', betweenness_infra, "Track betweenness centrality (weight = travel_time)", filename='betweenness_infra_single')
 plotting.plot_node_measure(G_tracks, G_services, pos_tracks, pos_stations, eigen_infra_weight, eigen_service_weight, "Unnormalized eigenvector centrality (weight = flow) ", nodesize_scale=200, filename='eigenvector_unnormalzied_with_flow_weight',left_subtitle = "a) track graph", right_subtitle = "b) service graph",)
 plotting.plot_measure(G_tracks,pos_tracks,'edge',measure_values=sf.weight_edge_measure_output(measures=betweenness_infra,df=edges_demand,df_column_id='flow'),title_str='Track betweenness weighted by edge flow',filename='flow-weighted_betweenness',colorbar_label='Betweenness * pax-flow',label_type=None)
+plotting.plot_measure(G_services,pos_stations,'node',measure_values=eigen_service_none, title_str='Service eigenvector centrality (weight = none)',filename='eigenvector_services_none_single',colorbar_label='Value',label_type=None,nodesize_scale=200)
 
 # Collect measures
 measures_edges_infra = {
@@ -404,23 +406,29 @@ interventions.show_experiments(title="Proposed rail interventions")
     int_neder_lely_extended_afsluitdijk_metrics, int_neder_lely_extended_afsluitdijk_comparison) = interventions.run_intervention_scenario(
     trajects=['nedersaksenlijn','lelylijn', 'lelylijn_extension','afsluitdijk'],scenario_name='nedersaksenlijn_w_lelylijn_extension_afsluitdijk',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
 
+(G_i7, pos_i7, nodes_new_neder_afsluitdijk, edges_new_neder_afsluitdijk, betweenness_new_neder_afsluitdijk,
+    int_neder_afsluitdijk_metrics, int_neder_afsluitdijk_comparison) = interventions.run_intervention_scenario(
+    trajects=['nedersaksenlijn','afsluitdijk'],scenario_name='nedersaksenlijn_w_afsluitdijk',target1=TARGET1,target2=TARGET2,morning_demand=MORNING_DEMAND)
+
 # Cross-compare results
 across_interventions = interventions.compare_interventions({
-    'nedersaksenlijn'                : int_neder_metrics,
+    'nedersaksenlijn'                 : int_neder_metrics,
     'lelylijn'                       : int_lely_metrics,
-    'lelylijn + extension'           : int_lely_extended_metrics,
-    'neder + lely'                   : int_neder_lely_metrics,
-    'neder + lely + extension'       : int_neder_lely_extended_metrics,
+    'lelylijn + extension'             : int_lely_extended_metrics,
+    'neder + lely'                    : int_neder_lely_metrics,
+    'neder + lely + extension'        : int_neder_lely_extended_metrics,
     'neder + lely + ext + afsluitdijk': int_neder_lely_extended_afsluitdijk_metrics,
+    'neder + afsluitdijk'             : int_neder_afsluitdijk_metrics
 }, scenario='default')
 
 across_interventions_disruption_comparison = interventions.compare_interventions({
-    'nedersaksenlijn'                : int_neder_comparison,
-    'lelylijn'                       : int_lely_comparison,
-    'lelylijn + extension'           : int_lely_extended_comparison,
-    'neder + lely'                   : int_neder_lely_comparison,
-    'neder + lely + extension'       : int_neder_lely_extended_comparison,
+    'nedersaksenlijn'                 : int_neder_comparison,
+    'lelylijn'                        : int_lely_comparison,
+    'lelylijn + extension'            : int_lely_extended_comparison,
+    'neder + lely'                    : int_neder_lely_comparison,
+    'neder + lely + extension'        : int_neder_lely_extended_comparison,
     'neder + lely + ext + afsluitdijk': int_neder_lely_extended_afsluitdijk_comparison,
+    'neder + afsluitdijk'             : int_neder_afsluitdijk_comparison
 }, scenario='improved_ov')
 
 across_interventions_disruption_comparison['default_ov'] = int_neder_comparison['default_ov'] # Doesn't matter which, all the same.

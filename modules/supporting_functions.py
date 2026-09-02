@@ -167,9 +167,11 @@ def compute_disrupted_passengers(edges_with_disruptions: pd.DataFrame,track_node
 
     return edges_with_disruptions["co_disruption_count"].apply(_row_total)
 
-def weight_edge_measure_output(measures: dict, df: pd.DataFrame, df_column_id:str='flow'):
+def weight_edge_measure_output(measures: dict, df: pd.DataFrame, df_column_id:str='flow',normalized:bool=True) -> dict:
     """
-    Multiply the measure values by some value from the from the df, keyed by edge. 
+    Multiply the measure values by some value from the from the df, keyed by edge.
+
+    Normalized: bool -> if the values in the output should be divided by the df column sum used in weighting. 
     """
     flow_lookup = (
         df.set_index(['source', 'target'])[df_column_id]
@@ -177,6 +179,7 @@ def weight_edge_measure_output(measures: dict, df: pd.DataFrame, df_column_id:st
     )
 
     weighted = {}
+    weight_sum = sum(flow_lookup.values()) if normalized else 1
 
     for edge, value in measures.items():
         flow = flow_lookup.get(edge)
@@ -184,6 +187,6 @@ def weight_edge_measure_output(measures: dict, df: pd.DataFrame, df_column_id:st
         if flow is None:
             flow = flow_lookup.get((edge[1], edge[0]), 0)
 
-        weighted[edge] = value * flow
+        weighted[edge] = (value * flow)/weight_sum
 
     return weighted
