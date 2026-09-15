@@ -16,8 +16,8 @@ def scale_factor(G: nx.Graph) -> float:
     fits a power law, and returns the scale-factor (alpha) value.
     """
     degree_sequence = [d for n, d in G.degree() if d > 0]
-    fit = powerlaw.Fit(degree_sequence, verbose=0)
-    return fit.alpha
+    fit = powerlaw.Fit(degree_sequence, verbose=0,discrete=True) #This is inconsistent between the metrics and degree distribution plots!
+    return fit.alpha 
 
 def natural_connectivity(largest_component: nx.Graph, n: int) -> float:
     eigenvalues = np.linalg.eigvalsh(nx.to_numpy_array(largest_component))

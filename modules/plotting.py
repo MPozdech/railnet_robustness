@@ -81,16 +81,16 @@ def plot_edge_measure(
     nodes_to_label = ic_node_labels(infra) 
     nodes_to_label_services = ic_node_labels(services)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharex=True, sharey=True, dpi=plot_dpi, constrained_layout=True)
+    fig = plt.figure( figsize=(12, 6), dpi=plot_dpi )
+    ax1 = fig.add_axes([0.02, 0.13, 0.48, 0.76]) 
+    ax2 = fig.add_axes([0.50, 0.13, 0.48, 0.76])
 
-    ax1.set_title(left_subtitle)
     edges1 = nx.draw_networkx_edges(
         infra, pos=pos_segments, width=edge_width,
         edgelist=edgelist_tracks, edge_color=edge_colors_tracks,
         edge_cmap=plt.cm.Reds, ax=ax1, edge_vmin=vmin, edge_vmax=vmax,
     )
 
-    ax2.set_title(right_subtitle)
     nx.draw_networkx_edges(
         services, pos=pos_nodes, width=edge_width,
         edgelist=edgelist_service, edge_color=edge_colors_service,
@@ -108,21 +108,38 @@ def plot_edge_measure(
         nx.draw_networkx_labels(infra, pos=pos_segments, font_size=8, ax=ax1)
         nx.draw_networkx_labels(services, pos=pos_nodes, font_size=8, ax=ax2)
 
+    cbar_ax = ax1.inset_axes([0.03, 0.1, 0.5, 0.035])
+    cbar = fig.colorbar(
+        edges1,
+        cax=cbar_ax,
+        orientation="horizontal"
+    )
+
+    cbar.set_label("Edge value", fontsize=9)
+    cbar.ax.xaxis.set_label_position("top")
+    cbar.ax.xaxis.labelpad = 3
+    cbar.ax.tick_params(labelsize=8)
     for ax in (ax1, ax2):
-        ax.set_xlim(3.5, 7.3)
-        ax.set_ylim(50.6, 53.5)
+        ax.axis('off')
         ax.set_aspect("equal", adjustable="box")
-        ax.set_xlabel("Longitude")
-        ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
-
-    ax1.set_ylabel("Latitude")
-    ax2.tick_params(left=False, labelleft=False)
-
-    cbar = fig.colorbar(edges1, ax=[ax1, ax2], shrink=0.6)
-    cbar.set_label("Edge value")
-    cbar.ax.yaxis.set_label_position('left')
-    fig.suptitle(title_str)
-    fig.suptitle(title_str, y=0.99)
+        ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+        
+    )
+    fig.text(
+        0.50, 0.98,
+        title_str,
+        ha="center",
+        va="top",
+        fontsize=14,
+        #fontweight="bold"
+    )
+    fig.text( 0.25, 0.925, left_subtitle, ha="center", va="top", fontsize=11) 
+    fig.text( 0.75, 0.925, right_subtitle, ha="center", va="top", fontsize=11)
+    
     fig.savefig(sf.get_dir(f'figures/{save_dir}/{filename}.jpg'),bbox_inches="tight",dpi=plot_dpi)
     _show(fig)
 
@@ -173,9 +190,10 @@ def plot_node_measure(
     nodes_to_label = ic_node_labels(infra)
     nodes_to_label_services = ic_node_labels(services)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6), sharex=True, sharey=True, dpi=plot_dpi, constrained_layout=True)
+    fig = plt.figure( figsize=(12, 6), dpi=plot_dpi )
+    ax1 = fig.add_axes([0.02, 0.13, 0.48, 0.76]) 
+    ax2 = fig.add_axes([0.50, 0.13, 0.48, 0.76])
 
-    ax1.set_title(left_subtitle)
     nodes1 = nx.draw_networkx_nodes(infra, 
                            pos=pos_segments,
                            nodelist=edgelist_tracks,
@@ -187,20 +205,13 @@ def plot_node_measure(
                            vmin = vmin,
                            vmax = vmax, 
                            ax=ax1)
-    #nodes1.set_edgecolor('r')
     edges1 = nx.draw_networkx_edges(
         infra, 
         pos=pos_segments, 
         width=edge_width,
-        #edgelist=edgelist_tracks, 
-        #edge_color=edge_colors_tracks,
-        #edge_cmap=plt.cm.Reds, 
         ax=ax1, 
-        #edge_vmin=vmin, 
-        #edge_vmax=vmax,
     )
 
-    ax2.set_title(right_subtitle)
     nodes2 = nx.draw_networkx_nodes(services, 
                            pos=pos_nodes, 
                            nodelist=edgelist_service, 
@@ -229,21 +240,38 @@ def plot_node_measure(
         nx.draw_networkx_labels(infra, pos=pos_segments, font_size=8, ax=ax1)
         nx.draw_networkx_labels(services, pos=pos_nodes, font_size=8, ax=ax2)
 
+    cbar_ax = ax1.inset_axes([0.03, 0.1, 0.5, 0.035])
+    cbar = fig.colorbar(
+        nodes1,
+        cax=cbar_ax,
+        orientation="horizontal"
+    )
+
+    cbar.set_label("Node value", fontsize=9)
+    cbar.ax.xaxis.set_label_position("top")
+    cbar.ax.xaxis.labelpad = 3
+    cbar.ax.tick_params(labelsize=8)
     for ax in (ax1, ax2):
-        ax.set_xlim(3.5, 7.3)
-        ax.set_ylim(50.6, 53.5)
+        ax.axis('off')
         ax.set_aspect("equal", adjustable="box")
-        ax.set_xlabel("Longitude")
-        ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
+        ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+        
+    )
+    fig.text(
+        0.50, 0.98,
+        title_str,
+        ha="center",
+        va="top",
+        fontsize=14,
+        #fontweight="bold"
+    )
+    fig.text( 0.25, 0.925, left_subtitle, ha="center", va="top", fontsize=11) 
+    fig.text( 0.75, 0.925, right_subtitle, ha="center", va="top", fontsize=11)
 
-    ax1.set_ylabel("Latitude")
-    ax2.tick_params(left=False, labelleft=False)
-
-    cbar = fig.colorbar(nodes1, ax=[ax1, ax2], shrink=0.6)
-    cbar.set_label("Node value")
-    cbar.ax.yaxis.set_label_position('left')
-    fig.suptitle(title_str)
-    fig.suptitle(title_str, y=0.99)
     fig.savefig(sf.get_dir(f'figures/measures/{filename}.jpg'),bbox_inches="tight",dpi=plot_dpi)
     _show(fig)
 
@@ -283,7 +311,6 @@ def plot_measure(
     nodes_to_label = ic_node_labels(G)
 
     fig, ax = plt.subplots(figsize=(7, 4), dpi=plot_dpi)
-    ax.set_title(title_str)
 
     if measure_type == "edge":
         edge_items = sorted(measure_values.items(), key=lambda x: x[1])
@@ -322,17 +349,34 @@ def plot_measure(
     elif label_type == "all":
         nx.draw_networkx_labels(G, pos=pos, font_size=8, ax=ax)
 
-    ax.set_xlim(3.5, 7.3)
-    ax.set_ylim(50.6, 53.5)
+    cbar_ax = ax.inset_axes([0.03, 0.1, 0.45, 0.035])
+    cbar = fig.colorbar(
+        drawn,
+        cax=cbar_ax,
+        orientation="horizontal"
+    )
+
+    cbar.set_label(colorbar_label, fontsize=9)
+    cbar.ax.xaxis.set_label_position("top")
+    cbar.ax.xaxis.labelpad = 3
+    cbar.ax.tick_params(labelsize=8)
+    ax.axis('off')
+    ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+    )
     ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
-    ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
-
-    cbar = fig.colorbar(drawn, ax=ax, shrink=0.6)
-    cbar.set_label(colorbar_label)
-    cbar.ax.yaxis.set_label_position('left')
-
+    fig.text(
+        0.50, 0.90,
+        title_str,
+        ha="center",
+        va="top",
+        fontsize=10,
+        #fontweight="bold"
+    )
+    
     fig.savefig(sf.get_dir(f"figures/measures/{filename}.jpg"), bbox_inches="tight", dpi=plot_dpi)
     _show(fig)
 
@@ -420,12 +464,24 @@ def ipv_services(services: nx.Graph, pos_nodes: dict, label_type: str, print_nod
         title_fontsize=8,
         framealpha=0.9,
     )
-    ax.set_xlim(3.5, 7.3)
-    ax.set_ylim(50.6, 53.5)
+    
+    ax.axis('off')
+    ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+    )
     ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
-    plt.title("Train Replacement Services, 2023~25")
+    fig.text(
+        0.50, 0.90,
+        "Train Replacement Services, 2023~25",
+        ha="center",
+        va="top",
+        fontsize=12,
+        #fontweight="bold"
+    )
+    
     fig.tight_layout()
     fig.savefig(sf.get_dir(f"figures/rdt/ipv_services.jpg"),bbox_inches="tight",dpi=plot_dpi)
     _show(fig)
@@ -928,7 +984,7 @@ def plot_correlations(df: object, title: str = 'Infra correlations',filename:str
 
     handles, labels = ax.get_legend_handles_labels()
     by_label = dict(zip(labels, handles))
-    ax.legend(by_label.values(), by_label.keys(), title="Measure", loc='best')
+    ax.legend(by_label.values(), by_label.keys(), title="Measure", loc='best',fontsize=8, title_fontsize=9, framealpha=0.9)
     fig.savefig(sf.get_dir(f"figures/correlations/{filename}.jpg"),bbox_inches="tight",dpi=plot_dpi)
     plt.tight_layout()
     _show(fig)
@@ -969,7 +1025,6 @@ def plot_rdt_edge_metric(services: nx.Graph,pos_nodes: dict,edge_attribute: str,
     nodes_to_label_services = ic_node_labels(services)
 
     fig, ax = plt.subplots(figsize=(7, 4), dpi=plot_dpi)
-    ax.set_title(title)
 
     edges_drawn = nx.draw_networkx_edges(
         services,
@@ -997,16 +1052,33 @@ def plot_rdt_edge_metric(services: nx.Graph,pos_nodes: dict,edge_attribute: str,
     elif label_type == "all":
         nx.draw_networkx_labels(services, pos=pos_nodes, font_size=8, ax=ax)
 
-    ax.set_xlim(3.5, 7.3)
-    ax.set_ylim(50.6, 53.5)
-    ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
-    ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
+    cbar_ax = ax.inset_axes([0.03, 0.1, 0.45, 0.035])
+    cbar = fig.colorbar(
+        edges_drawn,
+        cax=cbar_ax,
+        orientation="horizontal"
+    )
 
-    cbar = fig.colorbar(edges_drawn, ax=ax, shrink=0.6)
-    cbar.set_label(colorbar_label)
-    cbar.ax.yaxis.set_label_position("left")
+    cbar.set_label(colorbar_label, fontsize=9)
+    cbar.ax.xaxis.set_label_position("top")
+    cbar.ax.xaxis.labelpad = 3
+    cbar.ax.tick_params(labelsize=8)
+    ax.axis('off')
+    ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+    )
+    ax.set_aspect("equal", adjustable="box")
+    fig.text(
+        0.50, 0.90,
+        title,
+        ha="center",
+        va="top",
+        fontsize=10,
+        #fontweight="bold"
+    )
 
     fig.savefig(sf.get_dir(f"figures/rdt/{filename}.jpg"),bbox_inches="tight",dpi=plot_dpi)
     _show(fig)
@@ -1064,7 +1136,6 @@ def plot_disrupted_pax_minutes(
     nodes_to_label_services = ic_node_labels(services)
 
     fig, ax = plt.subplots(figsize=(7, 4), dpi=plot_dpi)
-    ax.set_title(title)
 
     edges_drawn = nx.draw_networkx_edges(
         services,
@@ -1092,16 +1163,33 @@ def plot_disrupted_pax_minutes(
     elif label_type == "all":
         nx.draw_networkx_labels(services, pos=pos_nodes, font_size=8, ax=ax)
 
-    ax.set_xlim(3.5, 7.3)
-    ax.set_ylim(50.6, 53.5)
-    ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
-    ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
+    cbar_ax = ax.inset_axes([0.03, 0.1, 0.45, 0.035])
+    cbar = fig.colorbar(
+        edges_drawn,
+        cax=cbar_ax,
+        orientation="horizontal"
+    )
 
-    cbar = fig.colorbar(edges_drawn, ax=ax, shrink=0.6)
-    cbar.set_label(colorbar_label)
-    cbar.ax.yaxis.set_label_position("left")
+    cbar.set_label(colorbar_label, fontsize=9)
+    cbar.ax.xaxis.set_label_position("top")
+    cbar.ax.xaxis.labelpad = 3
+    cbar.ax.tick_params(labelsize=8)
+    ax.axis('off')
+    ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+    )
+    ax.set_aspect("equal", adjustable="box")
+    fig.text(
+        0.50, 0.90,
+        title,
+        ha="center",
+        va="top",
+        fontsize=10,
+        #fontweight="bold"
+    )
 
     fig.savefig(sf.get_dir(f"figures/rdt/{filename}.jpg"), bbox_inches="tight", dpi=plot_dpi)
     _show(fig)
@@ -1203,8 +1291,8 @@ def plot_ipv_coverage_by_duration(
 
     ax.set_xlabel("Disruption duration [hours]", fontsize=10)
     ax.set_ylabel("Disruptions with IPV services provided [%]", fontsize=10)
-    ax.set_title(title, fontsize=11, pad=8)
-    ax.tick_params(axis="both", labelsize=8)
+    ax.set_title(title, fontsize=14, pad=8)
+    ax.tick_params(axis="both", labelsize=10)
 
     # Headroom above and below for the alternating annotations
     finite = y[~np.isnan(y)]
@@ -1645,7 +1733,6 @@ def plot_intervention_trajects(
     base_edges = [(u, v) for u, v in G.edges() if frozenset((u, v)) not in traject_edge_set]
 
     fig, ax = plt.subplots(1, 1, figsize=(7, 8), dpi=plot_dpi)
-    ax.set_title(title_str)
 
     nx.draw_networkx_nodes(G, pos=pos, node_color="lightgrey", edgecolors="grey",
                            linewidths=0.3, node_size=node_size, ax=ax)
@@ -1677,13 +1764,22 @@ def plot_intervention_trajects(
         nx.draw_networkx_labels(G, pos=pos, font_size=8, labels=traject_label_nodes, ax=ax)
 
     ax.legend(handles=legend_handles, title="Intervention", loc="lower right", fontsize=8)
-
-    ax.set_xlim(3.5, 7.3)
-    ax.set_ylim(50.6, 53.5)
+    ax.axis('off')
+    ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+    )
     ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
-    ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
+    fig.text(
+        0.50, 0.90,
+        title_str,
+        ha="center",
+        va="top",
+        fontsize=10,
+        #fontweight="bold"
+    )
 
     fig.tight_layout()
     fig.savefig(sf.get_dir(f"figures/interventions/{filename}.jpg"), bbox_inches="tight", dpi=plot_dpi)
@@ -1865,13 +1961,24 @@ def plot_blocks(G_tracks: nx.Graph, pos: dict,strictness:int,n_blocks:int):
         Line2D([0], [0], marker='o', color='none', label='Block terminus',
                markerfacecolor='black', markeredgecolor='black', markersize=7),
     ]
-    ax.legend(handles=legend_elements, loc='lower right')
+    ax.legend(handles=legend_elements, loc='lower right',bbox_to_anchor=(0, 1, 0, 0), fontsize=10)
 
-    title = f"Track blocks with strictness = {strictness}, number of blocks = {n_blocks}"
-    ax.set_title(title)
-    ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
+    ax.axis('off')
+    ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+    )
+    ax.set_aspect("equal", adjustable="box")
+    fig.text(
+        0.50, 0.98,
+        "Track blocks between terminus stations",
+        ha="center",
+        va="top",
+        fontsize=18,
+        #fontweight="bold"
+    )
     plt.tight_layout()
     fig.savefig(sf.get_dir(f"figures/block_graph_with_{strictness}.jpg"), bbox_inches="tight", dpi=plot_dpi)
     _show(fig)
@@ -2040,13 +2147,24 @@ def plot_infrastructure_comparison(infra: nx.Graph, ic_graph: nx.Graph, pos_segm
     if label_type == "ic":
         nx.draw_networkx_labels(infra, pos=pos_segments, font_size=8, labels=ic_nodes, ax=ax)
 
-    ax.set_xlim(3.5, 7.3)
-    ax.set_ylim(50.6, 53.5)
+
+    ax.axis('off')
+    ax.tick_params(
+        bottom=False,
+        left=False,
+        labelbottom=False,
+        labelleft=False,
+    )
     ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel("Longitude")
-    ax.set_ylabel("Latitude")
+    fig.text(
+        0.50, 0.90,
+        "Services vs. OV services",
+        ha="center",
+        va="top",
+        fontsize=10,
+        #fontweight="bold"
+    )
     ax.legend(handles=legend_elements, loc='best')
-    ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
     fig.tight_layout()
     fig.savefig(sf.get_dir(f"figures/{filename}.jpg"), bbox_inches="tight", dpi=plot_dpi)
     _show(fig)
@@ -2133,10 +2251,11 @@ def plot_graph_edge_attr_greedy(
             alpha=alpha,
             ax=ax,
         )
+    ax.set_aspect("equal", adjustable="box")
 
     ax.set_xlim(3.5, 7.3)
     ax.set_ylim(50.6, 53.5)
-    ax.set_aspect("equal", adjustable="box")
+    
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
     ax.tick_params(bottom=True, left=True, labelbottom=True, labelleft=True)
@@ -2178,7 +2297,7 @@ def plot_column_distribution(
         ax.set_xlabel(f"{column} [%]", fontsize=10)
         ax.set_ylabel("Count", fontsize=10)
 
-    ax.set_title(title, fontsize=11, pad=8)
+    ax.set_title(title, fontsize=14, pad=8)
     ax.tick_params(axis="both", labelsize=8)
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
@@ -2513,7 +2632,7 @@ def plot_highlighted_paths(
         dpi=plot_dpi,
     )
 
-    ax.set_title(title)
+    ax.set_title(title, fontsize=14)
 
     # Grey graph
     nx.draw_networkx_edges(
@@ -2594,11 +2713,6 @@ def plot_highlighted_paths(
         labelbottom=False,
         labelleft=False,
     )
-
-
-
-
-
 
     fig.tight_layout()
     fig.savefig(sf.get_dir(f"figures/discussion/{filename}.jpg"),bbox_inches="tight",dpi=plot_dpi,)
