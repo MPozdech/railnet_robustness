@@ -11,7 +11,19 @@ import warnings
 
 """
 This handles everything to load, clean, and join the data from the raw versions to
-those that create the (un-)directed graphs
+those that create the (un-)directed graphs, namely:
+    - load psql tables and demand json into dataframes
+    - rename json names to match GTFS names
+    - add missing stations (Zwolle Stadshagen) and border nodes
+    - create undirected edge key per node-pair
+    - create track edgelist from NS json (the 'ground truth' regarding possible track connections)
+    - create service edgelist from GTFS data
+    - fit travel times for unknown segments
+    - join ipv and ov connections
+    - create dataframe with node-data from RDT stations
+    - attach catchments (also loaded from psql)
+    - extract coordinates for plotting
+    - create the graphs for tracks, services, ov, and ipv edge-lists.
 """
 
 # Suppress message about using SQLAlchemy
