@@ -171,6 +171,7 @@ nodes_demand, edges_demand = sf.graph_to_dataframes(G_tracks_demand)
 
 ############ Analysis ############
 ##### Disruptions #####
+# This returns dataframes for each of the disruption scenarios, where 1 row = 1 run where a node/edge/block is disrupted. 
 # Edge disruptions
 (metrics_edge_tracks_no_alternative, metrics_edge_tracks_ipv_alt, metrics_edge_tracks_ov_alt, 
     metrics_edge_services_no_alternative, metrics_edge_services_ipv_alt, metrics_edge_services_ov_alt) = (

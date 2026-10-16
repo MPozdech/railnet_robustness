@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS disruptions.disruption_replacement_services;
 CREATE TABLE disruptions.disruption_replacement_services AS
 /*
-This takes the RDT service data and creates an edgelist of the
+This takes the RDT service data and creates an lists the
 bus replacement service that ran between 2023 and 2025.
 */
 
