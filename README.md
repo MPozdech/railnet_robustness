@@ -206,10 +206,6 @@ data/
       2024_demand_data.json                  # Demand and network data from NS
       clipped_pc4_population.shp             # Shapefile containing the catchment areas
       train_2024.csv                         # Demand data from OV Oost
-   GTFS/                                     # Contains text files with GTFS data
-   RDT/
-      disruptions-202x.csv                   # Recorded disruptions for a year
-      services-202x.csv                      # Recorded operated services for a year
 postgres/
    demand/
       ov_24.sql                              # Scripts for creating the ov_24 table
