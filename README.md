@@ -119,7 +119,7 @@ to follow these steps in order, starting with loading the data into a PostgreSQL
 
 ### Service data
 1. Create the GTFS PostgreSQL tables using the .sql scripts under `postgres/GTFS/loading`
-2. Import the GTFS data from .txt under data/GTFS into their PostgreSQL tables.
+2. Import the GTFS data from .txt under data/GTFS into their PostgreSQL tables (omitted due to size).
 3. Create the *master_routes* table using the script `postgres/GTFS/services/master_routes.sql`
    - This creates a table where one row = one route going in one direction.
    - Includes the most commonly observed stops for this service and the travel times between them.
@@ -129,7 +129,7 @@ to follow these steps in order, starting with loading the data into a PostgreSQL
    - Each edge has a travel time and the route_ids of all routes passing over it.
 ### Disruption data
 5. Create the RDT disruption, service, and station tables using the .sql scripts under `postgres/RDT/loading`
-6. Load the data from the .csv under `data/RDT` into their PostgreSQL tables.
+6. Load the data from the .csv under `data/RDT` into their PostgreSQL tables (omitted due to size).
 7. Combine the disruption and service into singular tables using their scripts `postgres/RDT/union`
 8. Create the *d25_pairs* table using the script `postgres/RDT/services/d25_pairs.sql`
    - This builds on the *node_pairs* table by adding the data about disruptions along these service edges.
@@ -247,6 +247,9 @@ Their are two types of results that this script provides:
 The specific measures and metrics, and how they are calculated, are listed out below.
 
 ### Measures
+These are the measures of centrality taken from graph theory that can be calculated on a graph to assess the importance of its elements
+from differnt perspectives. The measures used in my work and their set up are listed below:
+
 - **Betweenness** — calculates the number of shortest paths that pass through an element (node or edge). 
    High values indicate many node-pairs pass across an element.
 
@@ -270,14 +273,50 @@ The specific measures and metrics, and how they are calculated, are listed out b
    - *Weighted*, where `nstart` is set to `TravellersPerDay` and the edge weight is set to the edge attribute `flow`. This simulates
       how edges with high demand are more important connections than edges with low passenger flows.
 
-   This is calculated using the NetworkX function [eigenvector_centrality](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.eigenvector_centrality.html#networkx.algorithms.centrality.eigenvector_centrality).
+   Calculated using the NetworkX function [eigenvector_centrality](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.centrality.eigenvector_centrality.html#networkx.algorithms.centrality.eigenvector_centrality).
 - **PageRank** — iterative calculation of a node's importance based on eigenvector centrality, but expanded by also considering
    the degree of a node, where nodes with high numbers of neighbors are considered as more important. By this process it also
    ensures every node has some value, in contrast with eigenvector centrality where most of the nodes will have near-zero values.
-   The default dampening parameter `alpha` of 0.85 was used
-   Two alternatives were calculated:
+   The default dampening parameter `alpha` of 0.85 was used.
 
+   Two alternatives are calculated:
    - *Unweighted*, where the network is assessed without any intial importance for the nodes and the edges are all equally strong.
    - *Weighted*, where the `nstart` is set to `TravellersPerDay` and `weight` is set to `flow`.
 
-   This is calculated using the NetworkX function [pagerank](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.link_analysis.pagerank_alg.pagerank.html).
+   Calculated using the NetworkX function [pagerank](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.link_analysis.pagerank_alg.pagerank.html).
+
+### Metrics
+
+To assess the impacts disruptions have several metrics are calculated by the script. These are calculated initially for the default
+graphs and subsequently following each disruption. The metrics used in this project are listed below:
+
+- **Average Path Length** (APL) — calculates the what the average distance is between any two nodes in the graph. If a `weight` is passed it calculates the distance using this weight edge attribute as the cost required to traverse this link. APL does not differentiate between node pairs—all possible pairings are treated equally when averaging the distances between them.
+
+Four alternatives are calculated:
+- **Unweighted**, where links carry no cost to traverse and the results are expressed in the number of edges.
+- **Travel time weight**, where the `weight` is the edge attribute `travel_time`. Result is expressed in minutes.
+- **Travel time x flow**, where the `weight` is the multiple of `travel_time` and `flow` across an edge. Result is expressed in passenger-minutes. 
+- **Passenger flow**, where the `weight` is set to `flow`.
+
+Calculated using the the NetworkX function [average_shortest_path_length](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.shortest_paths.generic.average_shortest_path_length.html).
+
+- **Diameter** — calculates what the longest path that exists between the two farthest-apart nodes. Distance is calculated the same way as APL is. Implented with the `weight` set to the edge attribute `travel_time`.
+
+- **Global Efficiency** — calculates the inverse of the average path length, describing the efficiency of communication across a network. Unweighted metric, result is unitless.
+
+- **RSGC** — calculates the ratio between the number of nodes in the largest graph component over the origial graph. Used to assess by how much the network shrunk following a disruption to it. Taken from [Dehaghani and Morency (2025)](https://www.sciencedirect.com/science/article/pii/S037843712500113X).
+
+- **Scaling factor** — is the exponent of a power function fitted through the degree distribution of a graph. Smaller values indicate increased robustness as there are more high-degree nodes in the network. 
+Calculated using the `Fit` function from the module `powerlaw`. 
+
+- **Average degree** — is the average number of neighbors a node has. Higher values indicate higher 
+robustness as the network is more interconnected.
+
+- **Average clustering coefficient** — reflects the likelihood that two noods will be directly connected
+with an edge. Higher values indicate greater robustness as it is more likely two nodes are directly connected. Calculated using the NetworkX function [average_clustering](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.average_clustering.html).
+
+- **Natural connectivity** — an approximate indicator of the number of alternative (redundant) paths that exist between all node-pairs in a network. Taken from [Palk. et. al. (2026)](https://onlinelibrary.wiley.com/doi/10.1002/net.70021).
+
+- **Algebraic connectivity** — indicates the number of elements required to remove before a graph becomes disconnected, where higher values indicate higher robustness. Taken from [Freitas. et. al. (2023)](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9745316). Calculated using the NetworkX function [algebraic_connectivity](https://networkx.org/documentation/stable/reference/generated/networkx.linalg.algebraicconnectivity.algebraic_connectivity.html) with `weight` set to the edge attribute `travel_time`.
+
+- **Conductance** — expresses the path redundancy within a network by considering both number of redundant paths and their distances. Taken from [Wang et. al. (2017)](https://www.sciencedirect.com/science/article/pii/S0378437117300675?via%3Dihub). 
