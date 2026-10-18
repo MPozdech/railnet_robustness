@@ -18,7 +18,7 @@ the section [Data sources](#data).
 To investigate how constructing new track alignments would improve robustness three new 
 track corridors were added to the track graph and assessed using the same measure - metric
 procedure following targeted disruptions to the network. These new track sections are the 
-Nedersaksenlijn, the Lelylijn, and an bridge across the Afsluitdijk.
+Nedersaksenlijn, the Lelylijn, and a bridge across the Afsluitdijk.
 
 ## What it does
 
@@ -125,7 +125,7 @@ to follow these steps in order, starting with loading the data into a PostgreSQL
    - Includes the most commonly observed stops for this service and the travel times between them.
    - See the comments in this script for further information.
 4. Create the *node_pairs* table using the script `postgres/GTFS/services/node_pairs.sql`
-   - This creates a table -- an undirected edgelist -- where one row = one edge in the service graph.
+   - This creates a table—a directed edgelist—where one row = one edge in the service graph.
    - Each edge has a travel time and the route_ids of all routes passing over it.
 ### Disruption data
 5. Create the RDT disruption, service, and station tables using the .sql scripts under `postgres/RDT/loading`
@@ -207,6 +207,8 @@ data/
       clipped_pc4_population.shp             # Shapefile containing the catchment areas
       train_2024.csv                         # Demand data from OV Oost
 postgres/
+   database_structure.txt                    # Code for the interactive database diagram from dbdiagram.io
+   database_structure.pdf                    # Visualization of the database structure
    demand/
       ov_24.sql                              # Scripts for creating the ov_24 table
       station_catchments.sql                 # Calculates the population in a station's catchment area
@@ -231,7 +233,7 @@ postgres/
 | Name | Source | Accessed | Description |
 |---|---|---|---|
 | NS demand and network | [Link](https://dashboards.nsjaarverslag.nl/reizigersgedrag?dtYear=2024) | 23/02/26 | Station passenger demand and flow across track segments |
-| GTFS services | [Link](https://gtfs.ovapi.nl/) | 21/01/26 | Passenger services planned to operate in 2026 |
+| GTFS services | [Link](https://gtfs.ovapi.nl/) | 29/01/26 | Passenger services planned to operate in 2026 |
 | RDT disruptions | [Link](https://www.rijdendetreinen.nl/en/open-data/disruptions#downloads) | 02/02/26 | Historical disruptions recorded |
 | RDT services | [Link](https://www.rijdendetreinen.nl/en/open-data/train-archive#downloads) | 11/03/26 | Historical services operated |
 | Station details | [Link](https://www.rijdendetreinen.nl/en/open-data/stations#downloads) | 02/02/26 | Station size, code, type |
@@ -292,13 +294,13 @@ graphs and subsequently following each disruption. The metrics used in this proj
 
 - **Average Path Length** (APL) — calculates the what the average distance is between any two nodes in the graph. If a `weight` is passed it calculates the distance using this weight edge attribute as the cost required to traverse this link. APL does not differentiate between node pairs—all possible pairings are treated equally when averaging the distances between them.
 
-Four alternatives are calculated:
-- **Unweighted**, where links carry no cost to traverse and the results are expressed in the number of edges.
-- **Travel time weight**, where the `weight` is the edge attribute `travel_time`. Result is expressed in minutes.
-- **Travel time x flow**, where the `weight` is the multiple of `travel_time` and `flow` across an edge. Result is expressed in passenger-minutes. 
-- **Passenger flow**, where the `weight` is set to `flow`.
+   Four alternatives are calculated:
+   - **Unweighted**, where links carry no cost to traverse and the results are expressed in the number of edges.
+   - **Travel time weight**, where the `weight` is the edge attribute `travel_time`. Result is expressed in minutes.
+   - **Travel time x flow**, where the `weight` is the multiple of `travel_time` and `flow` across an edge. Result is expressed in passenger-minutes. 
+   - **Passenger flow**, where the `weight` is set to `flow`.
 
-Calculated using the the NetworkX function [average_shortest_path_length](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.shortest_paths.generic.average_shortest_path_length.html).
+   Calculated using the the NetworkX function [average_shortest_path_length](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.shortest_paths.generic.average_shortest_path_length.html).
 
 - **Diameter** — calculates what the longest path that exists between the two farthest-apart nodes. Distance is calculated the same way as APL is. Implented with the `weight` set to the edge attribute `travel_time`.
 
@@ -307,13 +309,13 @@ Calculated using the the NetworkX function [average_shortest_path_length](https:
 - **RSGC** — calculates the ratio between the number of nodes in the largest graph component over the origial graph. Used to assess by how much the network shrunk following a disruption to it. Taken from [Dehaghani and Morency (2025)](https://www.sciencedirect.com/science/article/pii/S037843712500113X).
 
 - **Scaling factor** — is the exponent of a power function fitted through the degree distribution of a graph. Smaller values indicate increased robustness as there are more high-degree nodes in the network. 
-Calculated using the `Fit` function from the module `powerlaw`. 
+   Calculated using the `Fit` function from the module `powerlaw`. 
 
 - **Average degree** — is the average number of neighbors a node has. Higher values indicate higher 
-robustness as the network is more interconnected.
+   robustness as the network is more interconnected.
 
 - **Average clustering coefficient** — reflects the likelihood that two noods will be directly connected
-with an edge. Higher values indicate greater robustness as it is more likely two nodes are directly connected. Calculated using the NetworkX function [average_clustering](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.average_clustering.html).
+   with an edge. Higher values indicate greater robustness as it is more likely two nodes are directly connected. Calculated using the NetworkX function [average_clustering](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.cluster.average_clustering.html).
 
 - **Natural connectivity** — an approximate indicator of the number of alternative (redundant) paths that exist between all node-pairs in a network. Taken from [Palk. et. al. (2026)](https://onlinelibrary.wiley.com/doi/10.1002/net.70021).
 

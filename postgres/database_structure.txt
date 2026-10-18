@@ -1,0 +1,429 @@
+table routes {
+  route_id text [primary key]
+  agency_id text
+  route_short_name text
+  route_long_name text
+  route_desc text
+  route_type integer
+  route_url text
+  route_color text
+  route_text_color text
+  route_sort_order integer
+  Note: 'GTFS table where 1 row = 1 route (a service)'
+}
+
+table stops{
+  stop_id text [primary key]
+  stop_code text
+  stop_name text [pk]
+  stop_desc text
+  stop_loc geography
+  zone_id text
+  stop_url text
+  location_type text
+  stop_timezone text
+  wheelchair_boarding text
+  level_id text
+  platform_code text
+  Note: 'GTFS table where 1 row = 1 stop on the network'
+}
+
+table stop_times AS st{
+  trip_id text [pk]
+  arrival_time interval
+  departure_time interval
+  stop_id text
+  stop_sequence integer
+  stop_sequence_consec integer [pk]
+  stop_headsign text
+  pickup_type text
+  drop_off_type text
+  shape_dist_traveled real
+  timepoint text
+  trip_start_time interval
+  Note:  'GTFS table where 1 row = 1 stopping of a trip at a stop'
+}
+
+table trips AS t{
+  trip_id text [primary key]
+  route_id text
+  service_id text
+  trip_headsign text
+  direction_id integer
+  block_id text
+  shape_id text
+  wheelchair_accessible text
+  bikes_allowed text
+  Note: 'GTFS table where 1 row = 1 trip along a route'
+}
+
+table disruptions.stations {
+  id integer [pk]
+  code varchar
+  uic integer
+  name_short varchar
+  name_medium varchar
+  name_long varchar [pk]
+  slug varchar
+  country varchar
+  type_station varchar
+  ic_station boolean [Note: 'Does this station see IC services?']
+  Note: 'Rijden de Treinen table from 2022'
+}
+
+table stop_level as sl{
+  route_id integer 
+  direction_id integer 
+  trip_id integer [pk]
+  stop_sequence_consec integer [pk]
+  stop_name text
+  departure_time interval [Note: 'This is the time a trip departs this stop.']
+  next_arrival_time interval  [Note: 'This is the time a trip arrives at its next stop.']
+  ic_station boolean
+  prev_ic_sec integer [Note: 'This saves the stop_sequence_consec of the last IC station on a stop-pattern.']
+  next_ic_sec integer [Note: 'This saves the stop_sequence_consec of the next IC station on a stop-pattern.']
+  Note: 'Collects all GTFS information into a table where 1 row = 1 stopping of a service at a stop. Real table, not a CTE.'
+}
+
+
+ref: st.trip_id - sl.trip_id
+ref: st.stop_sequence_consec - sl.stop_sequence_consec
+ref: stops.stop_name < sl.stop_name
+ref: t.trip_id < sl.trip_id
+ref: disruptions.stations.name_long < sl.stop_name
+
+table ic_segments AS ics {
+  trip_id integer [pk]
+  prev_ic_seq integer [pk]
+  next_ic_seq integer [pk]
+  stations_between array
+  ic_segment_start text [Note: 'Name of the station where IC segment starts.']
+  ic_segment_end text   [Note: 'Name of the station where IC segment ends.']
+  stations_between_str text [Note: 'debug strings that stores everything between the two IC stops.']
+  Note: 'Stores for every trip_id the unique IC segments on it. 1 row = 1 unique IC segment per-route. Real table, not a CTE.'
+}
+
+ref: sl.trip_id - ics.trip_id
+
+table trip_patterns AS tp {
+  trip_id integer [pk]
+  route_id integer 
+  direction_id integer 
+  stops array [Note: 'Aggregation of stops for a trip. This is what I call a stop-pattern.']
+  stops_str array
+  ic_stations array [Note: 'For every stop on a stop-pattern aggregate if it is an IC station.']
+  stations_string_agg array [Note: 'This is 1-to-1 with stops for what IC segment each stop belongs to']
+  Note: 'Aggregates for every trip_id the array of stops on it. 1 row = 1 trip'
+}
+
+ref: sl.trip_id - tp.trip_id
+
+table pattern_counts as pc {
+  route_id integer [pk]
+  direction_id integer [pk]
+  stops array [pk]
+  observation_count bigint  [Note: 'How many times was a stop-pattern observed per route-direction?']
+  unique_pattern_count bigint [Note: 'How many different patterns were observed per route-direction?']
+  Note: 'Counts for every route-direction the observations of a particular pattern of stops and how many unique patterns per route-direction were observed. 1 row = 1 stop-pattern per route-direction.'
+}
+
+ref: sl.route_id - pc.route_id
+ref: sl.direction_id - pc.direction_id
+ref: tp.stops - pc.stops
+
+table routes_per_direction as rpd {
+  route_id integer [pk]
+  direction integer [pk]
+  terminus text
+  start_station text
+  end_station text
+  Note: 'This expands the routes to have 1 row = 1 route-direction. It also extracts the intended termini per route. Also filters the routes to only show pax heavy rail and non-ICE trains.'
+}
+
+ref: routes.route_id - rpd.route_id
+
+ref: pwt.route_id > rpd.route_id
+ref: pwt.direction_id > rpd.direction
+
+table pattern_with_terminals AS pwt{
+  route_id integer [pk]
+  direction_id integer [pk]
+  stops array [pk]
+  matches_terminals boolean
+  Note: 'Checks which stop-patterns from a route-direction match the intended termini from routes. 1 row = 1 stop-pattern per route-direction.'
+}
+
+ref: pc.route_id - pwt.route_id
+ref: pc.direction_id - pwt.direction_id
+ref: pc.stops - pwt.stops
+
+table ranked_patterns AS rp{
+  route_id integer [pk]
+  direction_id integer [pk]
+  stops array [pk]
+  rn integer
+  Note: 'This ranks the trip-patterns per route-direction based on first if the termini match and how frequently a stop-pattern was observed.'
+}
+
+ref: pc.route_id -  rp.route_id
+ref: pc.direction_id - rp.direction_id
+ref: pc.stops - rp.stops
+
+table total_trip_counts AS ttc {
+  route_id integer [pk]
+  direction_id integer [pk]
+  total_trip_count bigint
+  Note: 'Counts the number of trips any given route-direction had.'
+}
+
+ref: sl.route_id - ttc.route_id
+ref: sl.direction_id - ttc.direction_id
+
+table representative_routes AS rr {
+  route_id integer [pk]
+  direction_id integer [pk]
+  stops array
+  matches_terminals boolean
+  observation_count bigint
+  unique_pattern_count bigint
+  representative_trip_id integer
+  stations_string_agg array
+  Note: 'This window aggregates everything done until now into a table where 1 row = 1 route-direction that was observed in the trip database. It defines what the intended order of stops is per route-direction.'
+}
+
+ref: rp.route_id - rr.route_id
+ref: rp.direction_id - rr.direction_id
+
+table travel_times AS tt{
+  representative_trip_id integer [pk] 
+  travel_times array
+  Note: 'Calculates the travel times between the stops for every route-direction in representative_routes.'
+}
+
+ref: rr.representative_trip_id - tt.representative_trip_id
+
+table master_routes AS mr {
+  route_id integer [pk]
+  direction_id integer [pk]
+  agency_id text
+  representative_trip_id integer
+  route_short_name text
+  route_long_name text
+  start_station text
+  end_station text
+  terminus text
+  stops array
+  matches_terminals boolean
+  stop_count intger
+  travel_times array
+  observation_count bigint
+  total_trip_count bigint
+  pattern_share numeric
+  unique_pattern_count bigint
+  stations_string_agg array
+  Note: 'The resulting table. 1 row = 1 route-direction.'
+}
+
+ref: rr.route_id - mr.route_id
+ref: rr.direction_id - mr.direction_id
+
+
+table node_pairs AS np {
+  from_stop text [pk]
+  to_stop text [pk]
+  travel_time interval
+  route_count bigint
+  ic_segment_start array
+  ic_segment_end array
+  route_ids array
+  agency_ids array
+  route_short_names array
+  route_long_names array
+  directions array
+  Note: 'From the stops creates a view where 1 row = 1 node-pair between two stations.'
+}
+
+ref: mr.stops < np.from_stop
+ref: mr.stops < np.to_stop
+
+table disruptions.disruptions_25 AS d25 {
+  id int [pk]
+  rdt_id int [pk]
+  ns_lines varchar
+  rdt_lines varchar
+  rdt_line_id varchar
+  rdt_station_names varchar [Note: 'The stations that were affected by a disruption.']
+  rdt_station_codes varchar
+  cause_nl varchar
+  cause_en varchar
+  statistical_cause_nl varchar
+  statistical_cause_en varchar
+  cause_group varchar
+  starttime timestamp
+  end_time timestamp
+  duration_minutes integer
+  Note: 'The raw dump of the disruption data for one year - 2025'
+}
+
+table disruptions.disruptions_24 AS d24 {
+  id int [pk]
+  rdt_id int [pk]
+  ns_lines varchar
+  rdt_lines varchar
+  rdt_line_id varchar
+  rdt_station_names varchar [Note: 'The stations that were affected by a disruption.']
+  rdt_station_codes varchar
+  cause_nl varchar
+  cause_en varchar
+  statistical_cause_nl varchar
+  statistical_cause_en varchar
+  cause_group varchar
+  starttime timestamp
+  end_time timestamp
+  duration_minutes integer
+  Note: 'The raw dump of the disruption data for one year - 2025'
+}
+
+table disruptions.disruptions_23 AS d23 {
+  id int [pk]
+  rdt_id int [pk]
+  ns_lines varchar
+  rdt_lines varchar
+  rdt_line_id varchar
+  rdt_station_names varchar [Note: 'The stations that were affected by a disruption.']
+  rdt_station_codes varchar
+  cause_nl varchar
+  cause_en varchar
+  statistical_cause_nl varchar
+  statistical_cause_en varchar
+  cause_group varchar
+  starttime timestamp
+  end_time timestamp
+  duration_minutes integer
+  Note: 'The raw dump of the disruption data for one year - 2025'
+}
+
+table disruptions.disruptions_combined AS dc{
+  id int [pk, Note: 'Generated when combining the tables.']
+  old_id int [Note: 'The original data id. Not nullable but not distinct.']
+  rdt_id int [pk]
+  ns_lines varchar
+  rdt_lines varchar
+  rdt_line_id varchar
+  rdt_station_names varchar [Note: 'The stations that were affected by a disruption.']
+  rdt_station_codes varchar
+  cause_nl varchar
+  cause_en varchar
+  statistical_cause_nl varchar
+  statistical_cause_en varchar
+  cause_group varchar
+  starttime timestamp
+  end_time timestamp
+  duration_minutes integer
+  Note: 'Union of the disruptions for year 2023, 2024, and 2025.'
+}
+
+ref: d23.id - dc.old_id
+ref: d24.id - dc.old_id
+ref: d25.id - dc.old_id
+
+ref: dc.rdt_id - d.rdt_id
+
+table disruptions.d_adj AS d{
+  id int [pk]
+  rdt_id int [pk]
+  ns_lines varchar
+  rdt_lines varchar
+  rdt_line_id varchar
+  rdt_station_names varchar [Note: 'The stations that were affected by a disruption. In theory most of this could be joined to the node_pairs CTE, but then the array unnest would have to be done twice.']
+  
+  station_array array 
+  
+  rdt_station_codes varchar
+  cause_nl varchar
+  cause_en varchar
+  statistical_cause_nl varchar
+  statistical_cause_en varchar
+  cause_group varchar
+  starttime timestamp
+  end_time timestamp
+  duration_minutes integer
+
+  start_day text
+  end_day text
+  timeslot text [Note: 'During which travel period did the disruption occur?']
+  Note: 'Expanded disruption data table with some more information.'
+}
+
+ref: disruptions.d_adj.station_array - disruptions.d25_pairs.from_stop
+ref: disruptions.d_adj.station_array - disruptions.d25_pairs.to_stop
+
+table disruptions.ic_segments AS d_ics {
+  ic_segment_start text [pk, Note: 'The IC station starting a segment.']
+  ic_segment_end text   [pk, Note: 'The IC station ending a segment.']
+  stations_between array [Note: 'The (SPR) stations between the two IC stations.']
+  Note: 'Table from the master_routes table that contains every IC segment.'
+}
+
+ref: ics.ic_segment_start - d_ics.ic_segment_start
+ref: ics.ic_segment_end   - d_ics.ic_segment_end
+
+table disruption.cause_counts AS cc {
+  from_stop text  [pk]
+  to_stop text    [pk]
+  statistical_cause_en varchar
+  cause_count bigint
+  Note: 'How many times did each cause occur on a segment?'
+}
+
+ref: np.from_stop - cc.from_stop
+ref: np.to_stop - cc.to_stop
+
+table disruption.cause_arrays AS ca {
+  from_stop text  [pk]
+  to_stop text    [pk]
+  causes_ordered array
+  cause_counts array
+}
+
+ref: np.from_stop - ca.from_stop
+ref: np.to_stop - ca.to_stop
+
+table disruption.longest_cause AS lc {
+  from_stop text  [pk]
+  to_stop text    [pk]
+  longest_duration_cause varchar
+  longest_duration_minutes integer
+}
+
+ref: np.from_stop - lc.from_stop
+ref: np.to_stop - lc.to_stop
+
+
+table disruptions.d25_pairs AS d25_p {
+  from_stop text [pk]
+  to_stop text [pk]
+  disruption_count bigint
+  avg_disruption_duration numeric
+  most_common_cause varchar
+  min_duration int
+  max_duration int
+  max_duration_cause varchar
+  count_morning_peak bigint
+  count_midday_offpeak bigint
+  count_evening_peak bigint
+  count_offpeak bigint
+  causes_ordered array [Note: 'These are ordered from most to least observed.']
+  cause_counts array [Note: 'These are frequencies of each cause.']
+  causes_array array [Note: 'The raw dump of all causes']
+  rdt_id_array array [Note: 'All disruption ids that were attached to this pair.']
+  Note: 'Final table loaded into python. Directed edgelist.'
+}
+
+ref: np.from_stop - d25_p.from_stop
+ref: np.to_stop - d25_p.to_stop
+
+
+
+
+
